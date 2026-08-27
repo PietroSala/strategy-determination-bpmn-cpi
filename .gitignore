@@ -12,3 +12,4 @@ scripts/storm-comparison-ablation/results.json
 scripts/storm-comparison-ablation/figures/
 scripts/storm-comparison-ablation/default_experiment/
 scripts/storm-comparison-ablation/default_experiment.tar.xz
+__pycache__/
