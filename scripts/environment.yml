@@ -1,0 +1,34 @@
+# Conda environment for the experiments of the algorithm paper.
+#
+#   conda env create -f environment.yml
+#   conda activate paco-experiments
+#
+# The model checkers are NOT in here. PRISM runs on the JVM and Storm is a
+# native binary; both are installed outside conda and recorded in docs/tools.md,
+# so that the environment describes the analysis and the drivers, not the tools
+# under test.
+name: paco-experiments
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - ipykernel
+  - tqdm
+  - pyyaml
+  - psutil          # wall clock and memory of a run
+  - networkx        # process trees and their traversals
+  - pip
+  - pip:
+      - stormpy ; sys_platform == "linux"   # python bindings, no wheels on macOS
+# GPU. There is no CUDA on Apple Silicon, so nothing here pins a CUDA build. On
+# the machine that carries the GPU, add the accelerated stack there rather than
+# in this file, for instance
+#   conda install -c conda-forge -c nvidia pytorch-gpu cuda-version=12
+# and record in docs/tools.md which machine ran which part, since a timing
+# comparison is only readable if the reader knows the hardware behind it.

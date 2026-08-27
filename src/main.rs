@@ -3,7 +3,7 @@
 //!     sdcpi info    <instance>
 //!     sdcpi optima  <instance>
 //!     sdcpi verify  <instance> [--bounds-dir DIR]
-//!     sdcpi search  <instance> (--threshold a,b,... | --alpha X) [options]
+//!     sdcpi search  <instance> (--threshold a,b,... | --bound-file F) [options]
 //!
 //! An instance is either a path to a YAML file or a key of the grid,
 //! `<nested>-<independent>-<process_number>-<dimensions>-<mode>`, resolved under
@@ -59,7 +59,7 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
   sdcpi info    <instance>
   sdcpi optima  <instance>
   sdcpi verify  <instance> [--bounds-dir DIR]
-  sdcpi search  <instance> (--threshold a,b,... | --alpha X) [options]
+  sdcpi search  <instance> (--threshold a,b,... | --bound-file F) [options]
   sdcpi bound   <instance>
   sdcpi sweep   <listfile> [--threads N]
   sdcpi check   <instance> [--alphas a,b,...] [--ablations ...] [--cap N]
@@ -67,8 +67,6 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
 options for search
   --bound-file F        the bound B from a yaml holding `B: [a, b, ...]`
   --threshold a,b,...   the bound B, one value per component
-  --alpha X             B = min + X (max - min), the optima computed first and
-                        reported apart from the time of the search itself
   --workers N           number of workers (default 1)
   --ablation MODE       both | accept | reject | none      (default both)
   --selection MODE      weighted | uniform | oldest        (default weighted)
@@ -76,8 +74,6 @@ options for search
   --timeout SECS        give up after this many seconds
   --epsilon E           relative slack on the comparison with B (default 0)
   --steal MODE          ring | any                        (default ring)
-  --from-bounds 1       place B from the Storm bounds on disk instead of
-                        computing the optima here
   --print-size 1        on a positive answer print how large the partial
                         strategy is: the histories of the winning frontier, how
                         many of them are still open, and how many decisions it
@@ -349,12 +345,11 @@ fn cmd_search(args: &[String]) -> i32 {
         Ok(a) => a,
         Err(e) => return fail(&e),
     };
-    let (path, tree) = match load(&args) {
+    let (_path, tree) = match load(&args) {
         Ok(v) => v,
         Err(e) => return fail(&e),
     };
 
-    let mut optima_secs = 0.0;
     let from_file = match args.flag("bound-file") {
         Some(p) => match bound_file(p) {
             Ok(v) => Some(v),
@@ -365,17 +360,16 @@ fn cmd_search(args: &[String]) -> i32 {
     let threshold = match (
         from_file.as_ref().map(|v| v.as_slice()),
         args.flag("threshold"),
-        args.flag("alpha"),
     ) {
-        (Some(v), _, _) if v.len() == tree.k => v.to_vec(),
-        (Some(v), _, _) => {
+        (Some(v), _) if v.len() == tree.k => v.to_vec(),
+        (Some(v), _) => {
             return fail(&format!(
                 "the bound file carries {} components against {} declared",
                 v.len(),
                 tree.k
             ))
         }
-        (None, Some(t), _) => match vector(t) {
+        (None, Some(t)) => match vector(t) {
             Ok(v) if v.len() == tree.k => v,
             Ok(v) => {
                 return fail(&format!(
@@ -386,59 +380,7 @@ fn cmd_search(args: &[String]) -> i32 {
             }
             Err(e) => return fail(&e),
         },
-        (None, None, Some(a)) => {
-            let alpha: f64 = match a.parse() {
-                Ok(v) => v,
-                Err(_) => return fail("--alpha wants a number"),
-            };
-            // The optima place the threshold, and computing them exactly walks
-            // the whole graph of the choice states, which is what the search
-            // exists not to do. On an instance where Storm has already answered
-            // that question, `--from-bounds` reads its answer instead, so the
-            // grid can be run at sizes the exact pass would not reach.
-            if args.flag("from-bounds").is_some() {
-                let dir = args.flag("bounds-dir").unwrap_or("benchmarks-bounds");
-                let reference = match reference_path(&path, dir) {
-                    Some(p) => p,
-                    None => return fail("cannot place the instance inside the grid"),
-                };
-                let text = match std::fs::read_to_string(&reference) {
-                    Ok(t) => t,
-                    Err(e) => return fail(&format!("{}: {e}", reference.display())),
-                };
-                let theirs = match parse_reference(&text) {
-                    Some(v) if v.len() == tree.k => v,
-                    Some(v) => {
-                        return fail(&format!(
-                            "{} carries {} components against {} declared",
-                            reference.display(),
-                            v.len(),
-                            tree.k
-                        ))
-                    }
-                    None => return fail(&format!("{}: no bounds in it", reference.display())),
-                };
-                theirs
-                    .iter()
-                    .map(|(lo, hi)| lo + alpha * (hi - lo))
-                    .collect()
-            } else {
-                let records = tables::Records::new();
-                let store = Store::new(&tree, &records, 1);
-                let started = Instant::now();
-                let o = match exact::optima(&store, 2_000_000usize) {
-                    Ok(o) => o,
-                    Err(e) => return fail(&format!("{e:?}")),
-                };
-                optima_secs = started.elapsed().as_secs_f64();
-                (0..tree.k)
-                    .map(|c| o.min[c] + alpha * (o.max[c] - o.min[c]))
-                    .collect()
-            }
-        }
-        (None, None, None) => {
-            return fail("give --bound-file, --threshold or --alpha")
-        }
+        (None, None) => return fail("give --bound-file or --threshold"),
     };
 
     let print_strategy = args.flag("print-strategy").is_some();
@@ -486,9 +428,6 @@ fn cmd_search(args: &[String]) -> i32 {
 
     println!("instance       {}", tree.meta.key);
     println!("threshold      {}", fmt_vec(&threshold));
-    if optima_secs > 0.0 {
-        println!("optima seconds {optima_secs:.4}");
-    }
     println!(
         "answer         {}",
         match &answer {
