@@ -1,34 +1,17 @@
-# Conda environment for the experiments of the algorithm paper.
+# The environment of the pipeline, exactly what the scripts import.
 #
 #   conda env create -f environment.yml
-#   conda activate paco-experiments
+#   conda activate sdcpi-experiments
 #
-# The model checkers are NOT in here. PRISM runs on the JVM and Storm is a
-# native binary; both are installed outside conda and recorded in docs/tools.md,
-# so that the environment describes the analysis and the drivers, not the tools
-# under test.
-name: paco-experiments
+# The model checkers are NOT in here: Storm and PRISM are native tools,
+# installed outside and pinned by version in the README. pip users take
+# requirements.txt instead; the two files name the same four packages.
+name: sdcpi-experiments
 channels:
   - conda-forge
 dependencies:
   - python=3.12
-  - numpy
-  - pandas
-  - scipy
-  - matplotlib
-  - seaborn
-  - jupyterlab
-  - ipykernel
-  - tqdm
-  - pyyaml
-  - psutil          # wall clock and memory of a run
-  - networkx        # process trees and their traversals
-  - pip
-  - pip:
-      - stormpy ; sys_platform == "linux"   # python bindings, no wheels on macOS
-# GPU. There is no CUDA on Apple Silicon, so nothing here pins a CUDA build. On
-# the machine that carries the GPU, add the accelerated stack there rather than
-# in this file, for instance
-#   conda install -c conda-forge -c nvidia pytorch-gpu cuda-version=12
-# and record in docs/tools.md which machine ran which part, since a timing
-# comparison is only readable if the reader knows the hardware behind it.
+  - pyyaml          # every stage reads and writes the instance format
+  - numpy           # the generator, and the impact modes of the benchmark
+  - plotly          # the figures
+  - python-kaleido  # plotly writes PDF through it

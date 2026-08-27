@@ -41,7 +41,9 @@ questions of the leader never being touched. A stage pointed at an experiment wr
 
 ## Requirements
 
-- Python 3 with PyYAML and plotly (`environment.yml` pins the versions).
+- Python 3.10 or later with PyYAML, numpy, plotly and kaleido:
+  `conda env create -f environment.yml`, or
+  `pip install -r requirements.txt`.
 - The library built at the root of the repository: `cargo build --release`.
 - For the comparison stages only: Storm 1.13.0 and PRISM 4.10.1. The exact
   builds, sources and checksums used by the paper are recorded in the header

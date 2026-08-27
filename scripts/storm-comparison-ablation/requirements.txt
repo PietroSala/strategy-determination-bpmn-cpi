@@ -1,0 +1,5 @@
+# pip mirror of environment.yml: python >= 3.10 and these four.
+pyyaml
+numpy
+plotly
+kaleido
