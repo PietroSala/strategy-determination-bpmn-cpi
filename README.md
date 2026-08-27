@@ -104,6 +104,13 @@ the whole flow is one pipe:
 ./target/release/sdcpi determine line.yaml --B 100,8
 ```
 
+The budget may also be given by name, in any order, and it is rearranged
+against `impact_names` before starting:
+
+```sh
+./target/release/sdcpi determine line.yaml --B '{hours: 8, kwh: 100}'
+```
+
 ## The question
 
 Because chance is part of the model, a single run proves nothing; what the
@@ -151,8 +158,9 @@ sdcpi optima  <instance>                     the exact least and greatest expect
 
 | option | meaning |
 |---|---|
-| `--B a,b,...` | the budget `B`, one value per component |
-| `--B-file F` | read `B` from a YAML file holding `B: [a, b, ...]` |
+| `--B a,b,...` | the budget `B`, one value per component, in the order of the instance |
+| `--B '{name: value, ...}'` | the budget by name: the map is rearranged against the `impact_names` of the instance before starting, and it must give every impact exactly one value |
+| `--B-file F` | read `B` from a YAML file holding `B: [a, b, ...]` or `B: {name: value, ...}`, on one line |
 | `--workers N` | parallel workers over one search (default 1) |
 | `--ablation MODE` | which of the two prunings to keep: `both`, `accept` (pessimistic only), `reject` (optimistic only), `none`; for measurement, the default `both` is the tool |
 | `--selection MODE` | which open situation to extend next: `weighted` (drawn, favouring likely ones, the default), `uniform` (drawn evenly), `oldest` (deterministic, for runs that must repeat exactly) |

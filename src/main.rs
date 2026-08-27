@@ -70,8 +70,11 @@ the grammar of parse, written inline or in the file
   names first appear, the vectors mapped by that order.
 
 options for determine
-  --B a,b,...           the budget B, one value per component
-  --B-file F            read B from a yaml holding `B: [a, b, ...]`
+  --B a,b,...           the budget B, one value per component, or the named
+                        form {name: value, ...}, rearranged against the
+                        impact_names of the instance before starting
+  --B-file F            read B from a yaml holding `B: [a, b, ...]` or
+                        `B: {name: value, ...}`
   --workers N           number of workers (default 1)
   --ablation MODE       both | accept | reject | none      (default both)
   --selection MODE      weighted | uniform | oldest        (default weighted)
@@ -174,15 +177,52 @@ fn load(args: &Args) -> Result<(PathBuf, Tree), String> {
     Ok((path, tree))
 }
 
-/// The threshold from a YAML file holding one key,
-///
-/// ```yaml
-/// B: [0.5, 1.25, 3.0]
-/// ```
-///
-/// one value per component. Other keys are ignored, so a file that also records
-/// where the numbers came from stays readable here.
-fn bound_file(path: &str) -> Result<Vec<f64>, String> {
+/// A budget as given, before the instance fixes the order of its components:
+/// either the array itself, or a map from impact names to values that is
+/// rearranged against the `impact_names` of the instance.
+enum BSpec {
+    List(Vec<f64>),
+    Map(Vec<(String, f64)>),
+}
+
+/// The budget from one piece of text: `a, b, ...` or `[a, b, ...]` is the
+/// array, `{name: value, ...}` is the named form.
+fn parse_bspec(text: &str) -> Result<BSpec, String> {
+    let t = text.trim();
+    if let Some(inner) = t.strip_prefix('{') {
+        let inner = inner
+            .strip_suffix('}')
+            .ok_or_else(|| "B opens with '{' and never closes it".to_string())?;
+        let mut pairs: Vec<(String, f64)> = Vec::new();
+        for part in inner.split(',') {
+            let (name, val) = part
+                .split_once(':')
+                .ok_or_else(|| format!("`{}` in B is not `name: value`", part.trim()))?;
+            let v = val
+                .trim()
+                .parse::<f64>()
+                .map_err(|_| format!("`{}` in B is not a number", val.trim()))?;
+            pairs.push((name.trim().to_string(), v));
+        }
+        if pairs.is_empty() {
+            return Err("B is an empty map".to_string());
+        }
+        Ok(BSpec::Map(pairs))
+    } else {
+        let inner = match t.strip_prefix('[') {
+            Some(r) => r
+                .strip_suffix(']')
+                .ok_or_else(|| "B opens with '[' and never closes it".to_string())?,
+            None => t,
+        };
+        Ok(BSpec::List(vector(inner)?))
+    }
+}
+
+/// The threshold from a YAML file holding one key, `B: [a, b, ...]` or
+/// `B: {name: value, ...}`, on one line. Other keys are ignored, so a file
+/// that also records where the numbers came from stays readable here.
+fn bound_file(path: &str) -> Result<BSpec, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     for line in text.lines() {
         let t = line.trim();
@@ -193,13 +233,53 @@ fn bound_file(path: &str) -> Result<Vec<f64>, String> {
             Some(r) => r.trim(),
             None => continue,
         };
-        let inner = rest
-            .strip_prefix('[')
-            .and_then(|v| v.strip_suffix(']'))
-            .ok_or_else(|| format!("{path}: B must be a list on one line, `B: [a, b, ...]`"))?;
-        return vector(inner).map_err(|e| format!("{path}: {e}"));
+        return parse_bspec(rest).map_err(|e| format!("{path}: {e}"));
     }
     Err(format!("{path}: no `B:` key in it"))
+}
+
+/// The budget in the order of the instance. An array must carry one value per
+/// component already; a map is rearranged against `impact_names`, and it must
+/// name every impact of the instance exactly once.
+fn resolve_b(spec: BSpec, names: &[String], k: usize) -> Result<Vec<f64>, String> {
+    match spec {
+        BSpec::List(v) if v.len() == k => Ok(v),
+        BSpec::List(v) => Err(format!(
+            "B has {} components against {} declared",
+            v.len(),
+            k
+        )),
+        BSpec::Map(pairs) => {
+            if names.len() != k {
+                return Err(
+                    "the instance carries no impact_names, so give B as an array".to_string()
+                );
+            }
+            let mut out: Vec<Option<f64>> = vec![None; k];
+            for (name, v) in &pairs {
+                let i = names.iter().position(|n| n == name).ok_or_else(|| {
+                    format!(
+                        "B names `{name}`, and the instance declares [{}]",
+                        names.join(", ")
+                    )
+                })?;
+                if out[i].is_some() {
+                    return Err(format!("B names `{name}` twice"));
+                }
+                out[i] = Some(*v);
+            }
+            let missing: Vec<&str> = names
+                .iter()
+                .zip(&out)
+                .filter(|(_, v)| v.is_none())
+                .map(|(n, _)| n.as_str())
+                .collect();
+            if !missing.is_empty() {
+                return Err(format!("B leaves [{}] without a value", missing.join(", ")));
+            }
+            Ok(out.into_iter().map(|v| v.unwrap()).collect())
+        }
+    }
 }
 
 fn vector(text: &str) -> Result<Vec<f64>, String> {
@@ -278,7 +358,10 @@ fn cmd_parse(args: &[String]) -> i32 {
                 Err(e) => fail(&format!("{path}: {e}")),
             },
             None => {
-                print!("{}", p.yaml);
+                // writing, not printing: a consumer that stops early, as
+                // `head` does, closes the pipe, and that is not a panic
+                use std::io::Write;
+                let _ = std::io::stdout().write_all(p.yaml.as_bytes());
                 0
             }
         },
@@ -332,37 +415,22 @@ fn cmd_determine(args: &[String]) -> i32 {
         Err(e) => return fail(&e),
     };
 
-    let from_file = match args.flag("B-file") {
-        Some(p) => match bound_file(p) {
-            Ok(v) => Some(v),
+    let spec = if let Some(p) = args.flag("B-file") {
+        match bound_file(p) {
+            Ok(s) => s,
             Err(e) => return fail(&e),
-        },
-        None => None,
-    };
-    let threshold = match (
-        from_file.as_ref().map(|v| v.as_slice()),
-        args.flag("B"),
-    ) {
-        (Some(v), _) if v.len() == tree.k => v.to_vec(),
-        (Some(v), _) => {
-            return fail(&format!(
-                "the bound file carries {} components against {} declared",
-                v.len(),
-                tree.k
-            ))
         }
-        (None, Some(t)) => match vector(t) {
-            Ok(v) if v.len() == tree.k => v,
-            Ok(v) => {
-                return fail(&format!(
-                    "the threshold has {} components against {} declared",
-                    v.len(),
-                    tree.k
-                ))
-            }
+    } else if let Some(t) = args.flag("B") {
+        match parse_bspec(t) {
+            Ok(s) => s,
             Err(e) => return fail(&e),
-        },
-        (None, None) => return fail("give --B or --B-file"),
+        }
+    } else {
+        return fail("give --B or --B-file");
+    };
+    let threshold = match resolve_b(spec, &tree.meta.impact_names, tree.k) {
+        Ok(v) => v,
+        Err(e) => return fail(&e),
     };
 
     let print_strategy = args.flag("print-strategy").is_some();
