@@ -140,6 +140,19 @@ There are two encodings, and the flag `--encode-history` picks one:
 ./target/release/sdcpi to_prism line.yaml --out line.prism
 ```
 
+`sdcpi to_objective` writes the question itself: the budget, in either form
+`determine` accepts, becomes the property to run against that model, one
+`R{"impactj"}<=Bj [ F n<root>=-2 ]` term per component joined in one
+`multi(...)`, asking whether some scheduler keeps every expected total
+reward within its bound by the time the root is done. Every value is kept
+exactly as written, so `0.70` stays `0.70` and is never reformatted. Model
+and property together are the whole handoff:
+
+```sh
+./target/release/sdcpi to_objective line.yaml --B '{kwh: 100, hours: 8}' --out line.props
+storm --prism line.prism --prop line.props --multiobjective:purescheds positional --exact
+```
+
 ## The question
 
 Because chance is part of the model, a single run proves nothing; what the
@@ -174,6 +187,7 @@ sdcpi parse     (<process> | --file F) [--out F]
                                              standard output or into --out
 
 sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
+sdcpi to_objective <instance> (--B a,b,... | --B-file F) [--out F]
                                              translate the instance into a PRISM
                                              model, on standard output or into
                                              --out; see below for the two

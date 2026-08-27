@@ -38,6 +38,7 @@ fn main() {
         "determine" => cmd_determine(&args[1..]),
         "parse" => cmd_parse(&args[1..]),
         "to_prism" => cmd_to_prism(&args[1..]),
+        "to_objective" => cmd_to_objective(&args[1..]),
         "bound" => cmd_bound(&args[1..]),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
@@ -57,6 +58,7 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
   sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
   sdcpi parse     (<process> | --file F) [--out F]
   sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
+  sdcpi to_objective <instance> (--B a,b,... | --B-file F) [--out F]
   sdcpi info      <instance>
   sdcpi bound     <instance>
   sdcpi optima    <instance>
@@ -81,6 +83,13 @@ options for to_prism
                         states forget closed decisions, right for every
                         single-component query. The model is written to
                         standard output, or to --out F
+
+options for to_objective
+  the budget of determine, --B or --B-file in either form, emitted as the
+  question put to the model checker over the model of to_prism: one
+  R{\"impactj\"}<=Bj [ F n<root>=-2 ] term per component, joined in one
+  multi(...) property, every value kept exactly as written. The property is
+  written to standard output, or to --out F
 
 options for determine
   --B a,b,...           the budget B, one value per component, or the named
@@ -190,12 +199,20 @@ fn load(args: &Args) -> Result<(PathBuf, Tree), String> {
     Ok((path, tree))
 }
 
+/// One component of the budget: the value, and the literal it was written
+/// as, so that what goes into an emitted objective is what the writer typed
+/// and never a reformatting of it.
+struct BVal {
+    text: String,
+    value: f64,
+}
+
 /// A budget as given, before the instance fixes the order of its components:
 /// either the array itself, or a map from impact names to values that is
 /// rearranged against the `impact_names` of the instance.
 enum BSpec {
-    List(Vec<f64>),
-    Map(Vec<(String, f64)>),
+    List(Vec<BVal>),
+    Map(Vec<(String, BVal)>),
 }
 
 /// The budget from one piece of text: `a, b, ...` or `[a, b, ...]` is the
@@ -206,7 +223,7 @@ fn parse_bspec(text: &str) -> Result<BSpec, String> {
         let inner = inner
             .strip_suffix('}')
             .ok_or_else(|| "B opens with '{' and never closes it".to_string())?;
-        let mut pairs: Vec<(String, f64)> = Vec::new();
+        let mut pairs: Vec<(String, BVal)> = Vec::new();
         for part in inner.split(',') {
             let (name, val) = part
                 .split_once(':')
@@ -215,7 +232,10 @@ fn parse_bspec(text: &str) -> Result<BSpec, String> {
                 .trim()
                 .parse::<f64>()
                 .map_err(|_| format!("`{}` in B is not a number", val.trim()))?;
-            pairs.push((name.trim().to_string(), v));
+            pairs.push((
+                name.trim().to_string(),
+                BVal { text: val.trim().to_string(), value: v },
+            ));
         }
         if pairs.is_empty() {
             return Err("B is an empty map".to_string());
@@ -254,7 +274,7 @@ fn bound_file(path: &str) -> Result<BSpec, String> {
 /// The budget in the order of the instance. An array must carry one value per
 /// component already; a map is rearranged against `impact_names`, and it must
 /// name every impact of the instance exactly once.
-fn resolve_b(spec: BSpec, names: &[String], k: usize) -> Result<Vec<f64>, String> {
+fn resolve_b(spec: BSpec, names: &[String], k: usize) -> Result<Vec<BVal>, String> {
     match spec {
         BSpec::List(v) if v.len() == k => Ok(v),
         BSpec::List(v) => Err(format!(
@@ -268,9 +288,9 @@ fn resolve_b(spec: BSpec, names: &[String], k: usize) -> Result<Vec<f64>, String
                     "the instance carries no impact_names, so give B as an array".to_string()
                 );
             }
-            let mut out: Vec<Option<f64>> = vec![None; k];
-            for (name, v) in &pairs {
-                let i = names.iter().position(|n| n == name).ok_or_else(|| {
+            let mut out: Vec<Option<BVal>> = (0..k).map(|_| None).collect();
+            for (name, v) in pairs {
+                let i = names.iter().position(|n| n == &name).ok_or_else(|| {
                     format!(
                         "B names `{name}`, and the instance declares [{}]",
                         names.join(", ")
@@ -279,7 +299,7 @@ fn resolve_b(spec: BSpec, names: &[String], k: usize) -> Result<Vec<f64>, String
                 if out[i].is_some() {
                     return Err(format!("B names `{name}` twice"));
                 }
-                out[i] = Some(*v);
+                out[i] = Some(v);
             }
             let missing: Vec<&str> = names
                 .iter()
@@ -295,11 +315,23 @@ fn resolve_b(spec: BSpec, names: &[String], k: usize) -> Result<Vec<f64>, String
     }
 }
 
-fn vector(text: &str) -> Result<Vec<f64>, String> {
+/// The budget as the flags give it, `--B` inline or `--B-file` from a file.
+fn budget_spec(args: &Args) -> Result<BSpec, String> {
+    if let Some(p) = args.flag("B-file") {
+        bound_file(p)
+    } else if let Some(t) = args.flag("B") {
+        parse_bspec(t)
+    } else {
+        Err("give --B or --B-file".to_string())
+    }
+}
+
+fn vector(text: &str) -> Result<Vec<BVal>, String> {
     text.split(',')
         .map(|p| {
-            p.trim()
-                .parse::<f64>()
+            let t = p.trim();
+            t.parse::<f64>()
+                .map(|value| BVal { text: t.to_string(), value })
                 .map_err(|_| format!("{p:?} is not a number"))
         })
         .collect()
@@ -418,6 +450,42 @@ fn cmd_optima(args: &[String]) -> i32 {
         Err(e) => fail(&format!("{e:?}")),
     }
 }
+fn cmd_to_objective(args: &[String]) -> i32 {
+    let args = match parse_args(args) {
+        Ok(a) => a,
+        Err(e) => return fail(&e),
+    };
+    let (_path, tree) = match load(&args) {
+        Ok(v) => v,
+        Err(e) => return fail(&e),
+    };
+    let spec = match budget_spec(&args) {
+        Ok(s) => s,
+        Err(e) => return fail(&e),
+    };
+    let b = match resolve_b(spec, &tree.meta.impact_names, tree.k) {
+        Ok(v) => v,
+        Err(e) => return fail(&e),
+    };
+    let parts: Vec<String> = b
+        .iter()
+        .enumerate()
+        .map(|(j, v)| format!("R{{\"impact{j}\"}}<={} [ F n{}=-2 ]", v.text, tree.root))
+        .collect();
+    let prop = format!("multi({})\n", parts.join(", "));
+    match args.flag("out") {
+        Some(p) => match std::fs::write(p, &prop) {
+            Ok(()) => 0,
+            Err(e) => fail(&format!("{p}: {e}")),
+        },
+        None => {
+            use std::io::Write;
+            let _ = std::io::stdout().write_all(prop.as_bytes());
+            0
+        }
+    }
+}
+
 fn cmd_to_prism(args: &[String]) -> i32 {
     let args = match parse_args(args) {
         Ok(a) => a,
@@ -464,21 +532,12 @@ fn cmd_determine(args: &[String]) -> i32 {
         Err(e) => return fail(&e),
     };
 
-    let spec = if let Some(p) = args.flag("B-file") {
-        match bound_file(p) {
-            Ok(s) => s,
-            Err(e) => return fail(&e),
-        }
-    } else if let Some(t) = args.flag("B") {
-        match parse_bspec(t) {
-            Ok(s) => s,
-            Err(e) => return fail(&e),
-        }
-    } else {
-        return fail("give --B or --B-file");
+    let spec = match budget_spec(&args) {
+        Ok(s) => s,
+        Err(e) => return fail(&e),
     };
-    let threshold = match resolve_b(spec, &tree.meta.impact_names, tree.k) {
-        Ok(v) => v,
+    let threshold: Vec<f64> = match resolve_b(spec, &tree.meta.impact_names, tree.k) {
+        Ok(v) => v.into_iter().map(|b| b.value).collect(),
         Err(e) => return fail(&e),
     };
 
