@@ -1,5 +1,6 @@
 # the metal line, in miniature
-(( Cut, 1, {kwh: 10, hours: 1} ) ->
- ( ( (Bend, 1, {kwh: 20, hours: 1}) -> ( (HPol, 2, {kwh: 5, hours: 4}) ^[0.2] (LPol, 1, {kwh: 8, hours: 1}) ) )
-   ||
-   ( (Mill, 1, {kwh: 50, hours: 1}) -> ( (FDep, 1, {kwh: 30, hours: 1}) ^ (RDep, 1, {kwh: 10, hours: 1}) ) ) ))
+(Cut, 1, {kwh: 10, hours: 1}),
+( ( (Bend, 1, {kwh: 20, hours: 1}), ( (HPol, 2, {kwh: 5, hours: 4}) ^[0.2] (LPol, 1, {kwh: 8, hours: 1}) ) )
+  ||
+  ( (Mill, 1, {kwh: 50, hours: 1}), ( (FDep, 1, {kwh: 30, hours: 1}) ^ (RDep, 1, {kwh: 10, hours: 1}) ) ) ),
+(Pack, 1, {hours: 1})

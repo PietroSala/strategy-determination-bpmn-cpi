@@ -71,16 +71,24 @@ D-mode.yaml`, by the key `N-M-P-D-mode` together with `--root <root>`.
 Instances can be written directly, in a grammar smaller than the YAML:
 
 ```
-process ::= task | "(" process op process ")"
-op      ::= "->" | "||" | "^" | "^[" prob "]"
+process ::= region ("," region)* | region op region
+region  ::= task | "(" process ")"
+op      ::= "||" | "^" | "^[" prob "]"
 task    ::= "(" name "," duration ")"
         |   "(" name "," duration "," "{" name ":" value "," ... "}" ")"
 ```
 
-`->` is a sequence, `||` a parallel composition, `^` a choice and `^[p]` a
-nature node taking its left operand with probability `p` in `(0, 1)`. Every
-composition carries its own parentheses, so no precedence exists to remember.
-A duration is a positive integer. The map of a task names only the impacts
+A comma between regions is a sequence, as in the grammar of the model,
+and it associates to the left: `A, B, C` means `(A, B), C`, the tree
+staying binary, and the chain needs no parentheses of its own. The comma
+is unambiguous: a task is recognised by the name after its parenthesis,
+and the commas of the tuple are consumed inside it. `||` is a parallel
+composition, `^` a choice and `^[p]` a nature node taking its left
+operand with probability `p` in `(0, 1)`; each of these three carries
+its own parentheses, one operator per pair, so no precedence exists to
+remember, and mixing the sequence comma with another operator demands
+the parentheses too. The outermost parentheses of the whole term are
+optional. A duration is a positive integer. The map of a task names only the impacts
 that are strictly positive: an absent name is zero, and a task may end at
 the duration, or carry `{}`, both meaning every impact zero. `#` starts a
 comment to the end of the line. The names are collected over the whole
@@ -88,7 +96,7 @@ process in the order they first appear; the emitted file lists them as
 `impact_names`, and that order is the meaning of every `impact` vector and
 of every budget `--B` you pass.
 
-`examples/line.cpi` is a seven-task manufacturing line in this grammar, and
+`examples/line.cpi` is an eight-task manufacturing line in this grammar, and
 the whole flow is one pipe:
 
 ```sh

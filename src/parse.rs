@@ -1,15 +1,22 @@
 //! The grammar of a process, and the writer of the instance file.
 //!
-//!     process ::= task | "(" process op process ")"
-//!     op      ::= "->" | "||" | "^" | "^[" prob "]"
+//!     process ::= region ("," region)* | region op region
+//!     region  ::= task | "(" process ")"
+//!     op      ::= "||" | "^" | "^[" prob "]"
 //!     task    ::= "(" name "," duration ")"
 //!             |   "(" name "," duration "," "{" impacts? "}" ")"
 //!     impacts ::= name ":" number ("," name ":" number)*
 //!
-//! `->` is a sequence, `||` a parallel composition, `^` a choice and `^[p]` a
-//! nature node whose left operand is taken with probability `p` in (0,1).
-//! Every composition carries its own parentheses, so the term is read off the
-//! string in one pass and no precedence has to be fixed. A duration is a
+//! `,` between regions is a sequence and associates to the left: `A, B, C`
+//! reads `(A, B), C`, the tree staying binary, and the chain needs no
+//! parentheses of its own; the comma is unambiguous because a task is
+//! recognised by the name after its parenthesis and the commas of the tuple
+//! are consumed inside it. `||` is a parallel composition, `^` a choice and
+//! `^[p]` a nature node whose left operand is taken with probability `p` in
+//! (0,1); each of these three carries its own parentheses, one operator per
+//! pair, so no precedence has to be fixed, and mixing the sequence comma
+//! with another operator demands the parentheses too. The outermost
+//! parentheses of the whole term are optional. A duration is a
 //! positive integer. The impact map of a task names only the impacts that are
 //! strictly positive; a task may omit the map, or write `{}`, both meaning
 //! every impact zero. The names are collected over the whole process in the
@@ -127,36 +134,58 @@ fn parse_process(
     sc: &mut Scanner,
     names: &mut Vec<String>,
 ) -> Result<Ast, String> {
-    sc.eat(b'(')?;
-    // a task opens on a name, a composition on another parenthesis
-    if sc.peek() == Some(b'(') {
-        let low = parse_process(sc, names)?;
-        sc.skip();
-        let (kind, prob) = if sc.text.get(sc.at..sc.at + 2) == Some(b"->") {
-            sc.at += 2;
-            ("sequence", None)
-        } else if sc.text.get(sc.at..sc.at + 2) == Some(b"||") {
-            sc.at += 2;
-            ("parallel", None)
-        } else if sc.text.get(sc.at) == Some(&b'^') {
+    let mut low = parse_region(sc, names)?;
+    sc.skip();
+    if sc.text.get(sc.at) == Some(&b',') {
+        // a chain of sequences, folded to the left
+        while sc.text.get(sc.at) == Some(&b',') {
             sc.at += 1;
-            if sc.text.get(sc.at) == Some(&b'[') {
-                sc.at += 1;
-                let p = sc.number()?;
-                if !(p > 0.0 && p < 1.0) {
-                    return Err(format!("a nature node carries {p}, and a probability lies in (0,1)"));
-                }
-                sc.eat(b']')?;
-                ("nature", Some(p))
-            } else {
-                ("choice", None)
+            let high = parse_region(sc, names)?;
+            low = Ast::Op {
+                kind: "sequence",
+                prob: None,
+                low: Box::new(low),
+                high: Box::new(high),
+            };
+            sc.skip();
+        }
+        return Ok(low);
+    }
+    let (kind, prob) = if sc.text.get(sc.at..sc.at + 2) == Some(b"||") {
+        sc.at += 2;
+        ("parallel", None)
+    } else if sc.text.get(sc.at) == Some(&b'^') {
+        sc.at += 1;
+        if sc.text.get(sc.at) == Some(&b'[') {
+            sc.at += 1;
+            let p = sc.number()?;
+            if !(p > 0.0 && p < 1.0) {
+                return Err(format!("a nature node carries {p}, and a probability lies in (0,1)"));
             }
+            sc.eat(b']')?;
+            ("nature", Some(p))
         } else {
-            return Err(format!("expected ->, ||, ^ or ^[p] at byte {}", sc.at));
-        };
-        let high = parse_process(sc, names)?;
+            ("choice", None)
+        }
+    } else {
+        // a single region: the whole process may be one task, and a
+        // parenthesised region may wrap another
+        return Ok(low);
+    };
+    let high = parse_region(sc, names)?;
+    Ok(Ast::Op { kind, prob, low: Box::new(low), high: Box::new(high) })
+}
+
+fn parse_region(
+    sc: &mut Scanner,
+    names: &mut Vec<String>,
+) -> Result<Ast, String> {
+    sc.eat(b'(')?;
+    // a task opens on a name, a wrapped process on another parenthesis
+    if sc.peek() == Some(b'(') {
+        let inner = parse_process(sc, names)?;
         sc.eat(b')')?;
-        return Ok(Ast::Op { kind, prob, low: Box::new(low), high: Box::new(high) });
+        return Ok(inner);
     }
     // a task: name, duration, and an optional impact map
     let name = sc.name()?;

@@ -59,7 +59,8 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
   sdcpi optima    <instance>
 
 the grammar of parse, written inline or in the file
-  process ::= task | ( process op process )      op ::= -> | || | ^ | ^[p]
+  process ::= region (, region)* | region op region      op ::= || | ^ | ^[p]
+  region  ::= task | ( process )
   task    ::= ( name , duration )  |  ( name , duration , { name: value, ... } )
   -> sequence, || parallel, ^ a choice, ^[p] a nature node taking its left
   operand with probability p in (0,1); durations positive integers; the map
