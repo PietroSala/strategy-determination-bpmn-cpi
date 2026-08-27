@@ -1,0 +1,58 @@
+# 3-2-1-4-random
+nested: 3
+independent: 2
+process_number: 1
+dimensions: 4
+mode: random
+seed: 20260815
+tasks: 6
+nodes: 11
+max_duration: 3
+xor_root_kind: choice
+source: generated_processes_full_3_2.txt line 1
+expression: "((T1 ^ ((T2 ^ T3) ^ T4)) , (T5 ^ T6))"
+tree:
+  - sequence:
+    id: 8
+    low:
+      - choice:
+        id: 2
+        low:
+          - task: T1
+            id: 1
+            duration: 2
+            impact: [0.300237, 0.38814, 0.53627, 0.675446]
+        high:
+          - nature: 0.94906
+            id: 6
+            low:
+              - choice:
+                id: 4
+                low:
+                  - task: T2
+                    id: 3
+                    duration: 1
+                    impact: [0.016605, 0.453897, 0.95486, 0.080263]
+                high:
+                  - task: T3
+                    id: 5
+                    duration: 3
+                    impact: [0.208196, 0.105513, 0.123084, 0.308029]
+            high:
+              - task: T4
+                id: 7
+                duration: 1
+                impact: [0.037155, 0.229967, 0.706417, 0.711477]
+    high:
+      - choice:
+        id: 10
+        low:
+          - task: T5
+            id: 9
+            duration: 3
+            impact: [0.570401, 0.89528, 0.896764, 0.982929]
+        high:
+          - task: T6
+            id: 11
+            duration: 3
+            impact: [0.812348, 0.340855, 0.760654, 0.900973]

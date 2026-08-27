@@ -9,5 +9,8 @@ with durations and with choices and nature nodes in alternation, the recorded
 rounds of every configuration, and the scripts that regenerate every number
 and every figure of the experimental section from them.
 
-The repository is being assembled from the working experiment repository and
-is private until the paper is submitted.
+The layout so far: `sdcpi/` holds the library and its command-line tool,
+documented standalone in `sdcpi/README.md`, and `examples/` two instances to
+explore it with. The rest of the material is being assembled from the working
+experiment repository; the repository is private until the paper is
+submitted.

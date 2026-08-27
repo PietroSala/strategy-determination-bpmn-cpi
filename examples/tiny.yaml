@@ -1,0 +1,26 @@
+# 1-1-7-2-random
+nested: 1
+independent: 1
+process_number: 7
+dimensions: 2
+mode: random
+seed: 20260815
+tasks: 2
+nodes: 3
+max_duration: 2
+xor_root_kind: nature
+source: generated_processes_full_1_1.txt line 7
+expression: "(T1 ^ T2)"
+tree:
+  - nature: 0.317537
+    id: 2
+    low:
+      - task: T1
+        id: 1
+        duration: 2
+        impact: [0.940423, 0.17498]
+    high:
+      - task: T2
+        id: 3
+        duration: 1
+        impact: [0.830795, 0.799341]
