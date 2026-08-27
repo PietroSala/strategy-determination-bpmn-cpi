@@ -6,10 +6,12 @@ Material and code for the paper *On-the-Fly Strategy Synthesis for Expected
 Impacts* (Chini, Amadori, Sala). The command-line tool `sdcpi`, Strategy
 Determination for BPMN+CPI, lives at the root of this repository and is
 documented below on its own terms; `examples/` holds two instances to
-explore it with. The recorded rounds, the generators and the scripts that
-regenerate every number and every figure of the experimental section are
-being assembled from the working experiment repository; the repository is
-private until the paper is submitted.
+explore it with. `scripts/` holds the pipeline that redoes
+the whole setup of the paper from nothing, documented in
+`scripts/README.md`; the library asks nothing of the scripts, and the
+scripts ask only the built library. The recorded rounds of the campaign are
+still to be assembled; the repository is private until the paper is
+submitted.
 
 **Strategy Determination for BPMN+CPI**, a command-line tool. Given a business
 process with decisions, chance and multi-dimensional costs, it answers one
@@ -21,7 +23,7 @@ Rust, no dependencies:
 
 ```sh
 cargo build --release
-./target/release/sdcpi search examples/tiny.yaml --alpha 0.5
+./target/release/sdcpi search examples/tiny.yaml --threshold 0.9,0.7
 ```
 
 ## The model
@@ -89,7 +91,7 @@ sdcpi info    <instance>                     what the file holds: sizes, counts
 sdcpi bound   <instance>                     the two estimates at the start
 sdcpi optima  <instance>                     the exact least and greatest expected
                                              impact per component, over all strategies
-sdcpi search  <instance> (--threshold ... | --alpha X) [options]
+sdcpi search  <instance> (--threshold ... | --bound-file F) [options]
 sdcpi verify  <instance> [--bounds-dir DIR]  compare the optima against reference
                                              values stored on disk
 sdcpi sweep   <listfile> [--threads N]       optima for every instance in a list
@@ -104,7 +106,6 @@ sdcpi check   <instance> [--alphas ...] [--ablations ...] [--cap N]
 |---|---|
 | `--threshold a,b,...` | the budget `B`, one value per component |
 | `--bound-file F` | read `B` from a YAML file holding `B: [a, b, ...]` |
-| `--alpha X` | place `B` automatically at the fraction `X` of the way from the least to the greatest achievable expected impact, per component; `0` is the hardest budget, `1` the easiest. The extrema are computed first and their time is reported apart |
 | `--workers N` | parallel workers over one search (default 1) |
 | `--ablation MODE` | which of the two prunings to keep: `both`, `accept` (pessimistic only), `reject` (optimistic only), `none`; for measurement, the default `both` is the tool |
 | `--selection MODE` | which open situation to extend next: `weighted` (drawn, favouring likely ones, the default), `uniform` (drawn evenly), `oldest` (deterministic, for runs that must repeat exactly) |
@@ -112,7 +113,6 @@ sdcpi check   <instance> [--alphas ...] [--ablations ...] [--cap N]
 | `--timeout SECS` | give up after this many seconds |
 | `--epsilon E` | relative slack when comparing with `B`, for budgets produced by floating point |
 | `--steal MODE` | how an idle worker finds work: from its ring neighbour (`ring`) or from anyone (`any`) |
-| `--from-bounds 1` | with `--alpha`, take the extrema from reference files on disk instead of computing them |
 | `--print-size 1` | on `yes`, print how large the returned strategy is: its situations, how many stay undecided, how many decisions it prescribes |
 | `--print-strategy 1` | print the strategy itself; without this the decisions are not recorded, which is faster, and only the answer is reported |
 | `--root DIR` | the grid directory, when the instance is a key |
