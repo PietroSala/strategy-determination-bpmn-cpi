@@ -88,9 +88,13 @@ undecided: any decision there fits the budget.
 
 ```
 sdcpi info    <instance>                     what the file holds: sizes, counts
-sdcpi bound   <instance>                     the two estimates at the start
+sdcpi bound   <instance>                     the two estimates at the start: one
+                                             traversal of the tree, instant on any
+                                             instance, every strategy enclosed
 sdcpi optima  <instance>                     the exact least and greatest expected
-                                             impact per component, over all strategies
+                                             impact per component, over all
+                                             strategies: walks every decision
+                                             situation and may hit --max-states
 sdcpi search  <instance> (--threshold ... | --bound-file F) [options]
 sdcpi verify  <instance> [--bounds-dir DIR]  compare the optima against reference
                                              values stored on disk
