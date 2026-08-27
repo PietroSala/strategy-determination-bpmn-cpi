@@ -28,8 +28,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
-FIGS = HERE / "figures"
-R = json.loads((HERE / "results.json").read_text())
+
+from experiment_base import base
+
+BASE = base(HERE)  # HERE, or the experiment named by --replay-experiment
+FIGS = BASE / "figures"
+R = json.loads((BASE / "results.json").read_text())
 
 # the reference palette of the hub, light mode; identities are fixed here and
 # reused identically in every figure

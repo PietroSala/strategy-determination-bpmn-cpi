@@ -77,10 +77,14 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
-INSTANCES = HERE / "bpmn-cpi-benchmarks"
-TRAIL = HERE / "prism-trail-encodings"
-BOUNDS = HERE / "benchmarks-optima"
-REFINEMENTS = HERE / "benchmarks-refinements"
+
+from experiment_base import base
+
+BASE = base(HERE)  # HERE, or the experiment named by --replay-experiment
+INSTANCES = BASE / "bpmn-cpi-benchmarks"
+TRAIL = BASE / "prism-trail-encodings"
+BOUNDS = BASE / "benchmarks-optima"
+REFINEMENTS = BASE / "benchmarks-refinements"
 
 RESULT = re.compile(r"Result \(for initial states\):\s*(true|false)")
 CHECK_TIME = re.compile(r"Time for model checking:\s*([\d.]+)s")

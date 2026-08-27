@@ -58,8 +58,12 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
-INSTANCES = HERE / "bpmn-cpi-benchmarks"
-OPTIMA = HERE / "benchmarks-optima"
+
+from experiment_base import base
+
+BASE = base(HERE)  # HERE, or the experiment named by --replay-experiment
+INSTANCES = BASE / "bpmn-cpi-benchmarks"
+OPTIMA = BASE / "benchmarks-optima"
 PACO = HERE.parent.parent / "target" / "release" / "sdcpi"  # the library, built at the repository root
 
 LINE = re.compile(r"^component\s+(\d+)\s+min\s+([\d.eE+-]+)\s+max\s+([\d.eE+-]+)",

@@ -47,9 +47,13 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
-INSTANCES = HERE / "bpmn-cpi-benchmarks"
-ENCODINGS = HERE / "prism-benchmark-encodings"
-BOUNDS = HERE / "benchmarks-bounds"
+
+from experiment_base import base
+
+BASE = base(HERE)  # HERE, or the experiment named by --replay-experiment
+INSTANCES = BASE / "bpmn-cpi-benchmarks"
+ENCODINGS = BASE / "prism-benchmark-encodings"
+BOUNDS = BASE / "benchmarks-bounds"
 
 RESULT = re.compile(r"Result \(for initial states\):\s*([-\d.eE+]+)")
 

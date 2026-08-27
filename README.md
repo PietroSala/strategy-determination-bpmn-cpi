@@ -10,9 +10,9 @@ explore it with. `scripts/storm-comparison-ablation/`
 holds the pipeline that redoes the experiments of the paper, the
 comparison with Storm and the ablation, from nothing, its own `README.md`
 walking the stages; the library asks nothing of the scripts, and the
-scripts ask only the built library. The recorded rounds of the campaign are
-still to be assembled; the repository is private until the paper is
-submitted.
+scripts ask only the built library. The campaign of the paper as it was
+recorded ships as a split archive that `setup.py` unpacks; the repository
+is private until the paper is submitted.
 
 **Strategy Determination for BPMN+CPI**, a command-line tool. Given a business
 process with decisions, chance and multi-dimensional costs, it answers one

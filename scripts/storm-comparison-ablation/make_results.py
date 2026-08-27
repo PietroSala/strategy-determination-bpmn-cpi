@@ -37,8 +37,12 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
-REF = HERE / "benchmarks-refinements"
-OUT = HERE / "results.json"
+
+from experiment_base import base
+
+BASE = base(HERE)  # HERE, or the experiment named by --replay-experiment
+REF = BASE / "benchmarks-refinements"
+OUT = BASE / "results.json"
 
 BLOCK = re.compile(r"^- round:.*?(?=^- round:|\Z)", re.M | re.S)
 RESULT = re.compile(r"^  result: (\w+)", re.M)

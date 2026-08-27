@@ -46,6 +46,7 @@ algorithm addresses.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import math
 import random
 import sys
@@ -53,8 +54,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
+
+from experiment_base import base
+
+BASE = base(HERE)  # HERE, or the experiment named by --replay-experiment
 BENCH = HERE / "process-impact-benchmarks"
-OUT = HERE / "bpmn-cpi-benchmarks"
+OUT = BASE / "bpmn-cpi-benchmarks"
 
 MODES = [
     "random",
@@ -302,9 +307,17 @@ def build(nested: int, independent: int, process_number: int, dimensions: int,
     lines = [l for l in src.read_text().splitlines() if l.strip()]
     expression = lines[process_number - 1]
 
-    # one seed per instance, derived from the run seed and the key, so that a
-    # single file can be rebuilt without rebuilding the grid
-    rng = random.Random((seed, nested, independent, process_number, dimensions, mode).__hash__())
+    # one seed per instance, derived from the run seed and the key through a
+    # stable digest, so that a single file can be rebuilt without rebuilding
+    # the grid and two runs of the same command write the same bytes on any
+    # machine. The campaign the paper reports predates this derivation, its
+    # generator having leaned on the hash of the interpreter run that made
+    # it, so the grid this stage writes is drawn the same way and is not
+    # that grid; the grid of the paper ships in default_experiment.
+    digest = hashlib.sha256(
+        f"{seed}|{nested}|{independent}|{process_number}|{dimensions}|{mode}".encode()
+    ).digest()
+    rng = random.Random(int.from_bytes(digest[:8], "big"))
     random.seed(rng.random())
     import numpy as np
     np.random.seed(rng.randrange(2**32))

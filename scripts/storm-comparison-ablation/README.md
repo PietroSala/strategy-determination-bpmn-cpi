@@ -9,7 +9,32 @@ beside the scripts themselves.
 
 Every stage is resumable: each one skips the work whose output already
 sits on disk, so a stage that was interrupted is simply run again and
-continues where it stopped.
+continues where it stopped. Every stage is deterministic under the seeds
+it carries, so what one machine produces, another reproduces. One caveat
+belongs to history: the grid the campaign of the paper was drawn from
+predates the stable seed derivation of stage 1, so stage 1 rewrites a
+grid drawn the same way, not that grid; the grid of the paper ships in
+`default_experiment/`.
+
+## Replaying the recorded campaign
+
+Every stage accepts `--replay-experiment`, which moves its data root:
+`--replay-experiment <dir>` names any folder structured like this one
+(`bpmn-cpi-benchmarks/`, `benchmarks-optima/`, `benchmarks-bounds/`,
+`benchmarks-refinements/`, `results.json`), and `--replay-experiment`
+alone names `default_experiment/`, the campaign of the paper as it was
+recorded, which `setup.py` unpacks from the split archive shipped in
+`default_experiment_archive/`. So
+
+```sh
+python3 scripts/storm-comparison-ablation/make_results.py --replay-experiment
+python3 scripts/storm-comparison-ablation/make_figures.py --replay-experiment
+```
+
+regenerates every number and every figure of the paper from the recorded
+rounds, and `replay.py --replay-experiment` re-asks the recorded questions
+themselves. A stage pointed at an experiment writes there too, so copy
+`default_experiment/` first if the shipped record should stay pristine.
 
 ## Requirements
 
