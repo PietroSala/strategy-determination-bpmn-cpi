@@ -580,14 +580,14 @@ def emit(data: dict, root: Node, source: Path, scale: float,
 # ---------------------------------------------------------------------------
 
 
-INSTANCES = Path(__file__).resolve().parent.parent / "bpmn-cpi-benchmarks"
-ENCODINGS = Path(__file__).resolve().parent.parent / "prism-benchmark-encodings"
+INSTANCES = Path(__file__).resolve().parent / "bpmn-cpi-benchmarks"
+ENCODINGS = Path(__file__).resolve().parent / "prism-benchmark-encodings"
 # the augmented models live in their own tree, at the same coordinates: the two
 # encodings answer different questions, the plain one every question about a
 # single component, where a memoryless policy is already optimal, the augmented
 # one the multi-objective question over our class of policies, and neither
 # replaces the other
-TRAIL_ENCODINGS = Path(__file__).resolve().parent.parent / "prism-trail-encodings"
+TRAIL_ENCODINGS = Path(__file__).resolve().parent / "prism-trail-encodings"
 
 
 def main() -> int:

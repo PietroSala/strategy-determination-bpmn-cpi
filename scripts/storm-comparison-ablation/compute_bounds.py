@@ -46,7 +46,7 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent.parent  # the repository root
+HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
 INSTANCES = HERE / "bpmn-cpi-benchmarks"
 ENCODINGS = HERE / "prism-benchmark-encodings"
 BOUNDS = HERE / "benchmarks-bounds"

@@ -27,7 +27,7 @@ from pathlib import Path
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-HERE = Path(__file__).resolve().parent.parent  # the repository root
+HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
 FIGS = HERE / "figures"
 R = json.loads((HERE / "results.json").read_text())
 

@@ -57,10 +57,10 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent.parent  # the repository root
+HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
 INSTANCES = HERE / "bpmn-cpi-benchmarks"
 OPTIMA = HERE / "benchmarks-optima"
-PACO = HERE / "target" / "release" / "sdcpi"
+PACO = HERE.parent.parent / "target" / "release" / "sdcpi"  # the library, built at the repository root
 
 LINE = re.compile(r"^component\s+(\d+)\s+min\s+([\d.eE+-]+)\s+max\s+([\d.eE+-]+)",
                   re.M)

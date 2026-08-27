@@ -76,7 +76,7 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent.parent  # the repository root
+HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
 INSTANCES = HERE / "bpmn-cpi-benchmarks"
 TRAIL = HERE / "prism-trail-encodings"
 BOUNDS = HERE / "benchmarks-optima"
@@ -88,7 +88,7 @@ STATES = re.compile(r"States:\s+(\d+)")
 
 STORM_FLAGS = ["--multiobjective:purescheds", "positional", "--exact"]
 
-PACO = HERE / "target" / "release" / "sdcpi"
+PACO = HERE.parent.parent / "target" / "release" / "sdcpi"  # the library, built at the repository root
 PACO_ANSWER = re.compile(r"^answer\s+(yes|no)\s*$", re.M)
 PACO_SECONDS = re.compile(r"^seconds\s+([\d.eE+-]+)\s*$", re.M)
 PACO_SIZE = {

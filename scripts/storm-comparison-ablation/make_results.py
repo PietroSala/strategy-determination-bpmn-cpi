@@ -36,7 +36,7 @@ import statistics
 import time
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent.parent  # the repository root
+HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
 REF = HERE / "benchmarks-refinements"
 OUT = HERE / "results.json"
 

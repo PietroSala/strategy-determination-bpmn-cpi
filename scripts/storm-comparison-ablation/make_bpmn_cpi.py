@@ -52,7 +52,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent.parent  # the repository root
+HERE = Path(__file__).resolve().parent  # the experiment directory; everything generated lands here
 BENCH = HERE / "process-impact-benchmarks"
 OUT = HERE / "bpmn-cpi-benchmarks"
 

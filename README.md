@@ -6,9 +6,10 @@ Material and code for the paper *On-the-Fly Strategy Synthesis for Expected
 Impacts* (Chini, Amadori, Sala). The command-line tool `sdcpi`, Strategy
 Determination for BPMN+CPI, lives at the root of this repository and is
 documented below on its own terms; `examples/` holds two instances to
-explore it with. `scripts/` holds the pipeline that redoes
-the whole setup of the paper from nothing, documented in
-`scripts/README.md`; the library asks nothing of the scripts, and the
+explore it with. `scripts/storm-comparison-ablation/`
+holds the pipeline that redoes the experiments of the paper, the
+comparison with Storm and the ablation, from nothing, its own `README.md`
+walking the stages; the library asks nothing of the scripts, and the
 scripts ask only the built library. The recorded rounds of the campaign are
 still to be assembled; the repository is private until the paper is
 submitted.
