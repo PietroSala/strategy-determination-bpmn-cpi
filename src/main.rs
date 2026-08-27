@@ -427,7 +427,7 @@ fn cmd_search(args: &[String]) -> i32 {
     let (answer, stats) = search::search(&tree, cfg);
 
     println!("instance       {}", tree.meta.key);
-    println!("threshold      {}", fmt_vec(&threshold));
+    println!("B              {}", fmt_vec(&threshold));
     println!(
         "answer         {}",
         match &answer {

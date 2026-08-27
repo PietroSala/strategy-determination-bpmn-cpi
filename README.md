@@ -124,7 +124,7 @@ sdcpi check   <instance> [--alphas ...] [--ablations ...] [--cap N]
 ## Output
 
 Plain `key value` lines, one per row, made to be parsed as easily as read:
-the instance, the threshold used, the answer, the seconds, and counters of
+the instance, the budget `B` used, the answer, the seconds, and counters of
 the work done (`expanded` situations, `choice states` met, `histories`
 followed). With `--print-strategy 1` the decisions follow, one line per
 decided situation.
