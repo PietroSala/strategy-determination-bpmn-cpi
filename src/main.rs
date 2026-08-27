@@ -53,7 +53,7 @@ const USAGE: &str = "\
 sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
 
   sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
-  sdcpi parse     (<process> | --file F)
+  sdcpi parse     (<process> | --file F) [--out F]
   sdcpi info      <instance>
   sdcpi bound     <instance>
   sdcpi optima    <instance>
@@ -271,10 +271,16 @@ fn cmd_parse(args: &[String]) -> i32 {
         _ => return fail("give the process inline or through --file, not both and not neither"),
     };
     match parse::to_yaml(&text) {
-        Ok(p) => {
-            print!("{}", p.yaml);
-            0
-        }
+        Ok(p) => match args.flag("out") {
+            Some(path) => match std::fs::write(path, &p.yaml) {
+                Ok(()) => 0,
+                Err(e) => fail(&format!("{path}: {e}")),
+            },
+            None => {
+                print!("{}", p.yaml);
+                0
+            }
+        },
         Err(e) => fail(&e),
     }
 }

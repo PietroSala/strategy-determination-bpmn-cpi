@@ -92,7 +92,7 @@ of every budget `--B` you pass.
 the whole flow is one pipe:
 
 ```sh
-./target/release/sdcpi parse --file examples/line.cpi > line.yaml
+./target/release/sdcpi parse --file examples/line.cpi --out line.yaml
 ./target/release/sdcpi determine line.yaml --B 100,8
 ```
 
@@ -124,9 +124,10 @@ sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
                                              is there a strategy whose expected
                                              impact fits the budget, and which one
 
-sdcpi parse     (<process> | --file F)       turn a process written in the grammar
+sdcpi parse     (<process> | --file F) [--out F]
+                                             turn a process written in the grammar
                                              below into an instance file, on
-                                             standard output
+                                             standard output or into --out
 
 sdcpi info    <instance>                     what the file holds: sizes, counts
 sdcpi bound   <instance>                     the two estimates at the start: one
