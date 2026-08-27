@@ -45,9 +45,12 @@ questions of the leader never being touched. A stage pointed at an experiment wr
   `conda env create -f environment.yml`, or
   `pip install -r requirements.txt`.
 - The library built at the root of the repository: `cargo build --release`.
-- For the comparison stages only: Storm 1.13.0 and PRISM 4.10.1. The exact
-  builds, sources and checksums used by the paper are recorded in the header
-  comments of `compute_bounds.py` and `refinement_game.py`.
+- For the comparison stages only: Storm 1.13.0, the one external tool the
+  pipeline runs. The exact build, source and checksum used by the paper are
+  recorded in the header comments of `compute_bounds.py` and
+  `refinement_game.py`. The models are written in the PRISM language, which
+  Storm reads through its `--prism` flag; the PRISM tool itself is never
+  invoked.
 
 ## The stages
 
