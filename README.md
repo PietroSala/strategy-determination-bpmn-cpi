@@ -23,7 +23,7 @@ Rust, no dependencies:
 
 ```sh
 cargo build --release
-./target/release/sdcpi search examples/tiny.yaml --threshold 0.9,0.7
+./target/release/sdcpi search examples/tiny.yaml --B 0.9,0.7
 ```
 
 ## The model
@@ -95,7 +95,7 @@ sdcpi optima  <instance>                     the exact least and greatest expect
                                              impact per component, over all
                                              strategies: walks every decision
                                              situation and may hit --max-states
-sdcpi search  <instance> (--threshold ... | --bound-file F) [options]
+sdcpi search  <instance> (--B ... | --B-file F) [options]
 sdcpi verify  <instance> [--bounds-dir DIR]  compare the optima against reference
                                              values stored on disk
 sdcpi sweep   <listfile> [--threads N]       optima for every instance in a list
@@ -108,8 +108,8 @@ sdcpi check   <instance> [--alphas ...] [--ablations ...] [--cap N]
 
 | option | meaning |
 |---|---|
-| `--threshold a,b,...` | the budget `B`, one value per component |
-| `--bound-file F` | read `B` from a YAML file holding `B: [a, b, ...]` |
+| `--B a,b,...` | the budget `B`, one value per component |
+| `--B-file F` | read `B` from a YAML file holding `B: [a, b, ...]` |
 | `--workers N` | parallel workers over one search (default 1) |
 | `--ablation MODE` | which of the two prunings to keep: `both`, `accept` (pessimistic only), `reject` (optimistic only), `none`; for measurement, the default `both` is the tool |
 | `--selection MODE` | which open situation to extend next: `weighted` (drawn, favouring likely ones, the default), `uniform` (drawn evenly), `oldest` (deterministic, for runs that must repeat exactly) |

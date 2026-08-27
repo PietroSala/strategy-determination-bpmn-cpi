@@ -3,7 +3,7 @@
 //!     sdcpi info    <instance>
 //!     sdcpi optima  <instance>
 //!     sdcpi verify  <instance> [--bounds-dir DIR]
-//!     sdcpi search  <instance> (--threshold a,b,... | --bound-file F) [options]
+//!     sdcpi search  <instance> (--B a,b,... | --B-file F) [options]
 //!
 //! An instance is either a path to a YAML file or a key of the grid,
 //! `<nested>-<independent>-<process_number>-<dimensions>-<mode>`, resolved under
@@ -59,14 +59,14 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
   sdcpi info    <instance>
   sdcpi optima  <instance>
   sdcpi verify  <instance> [--bounds-dir DIR]
-  sdcpi search  <instance> (--threshold a,b,... | --bound-file F) [options]
+  sdcpi search  <instance> (--B a,b,... | --B-file F) [options]
   sdcpi bound   <instance>
   sdcpi sweep   <listfile> [--threads N]
   sdcpi check   <instance> [--alphas a,b,...] [--ablations ...] [--cap N]
 
 options for search
-  --bound-file F        the bound B from a yaml holding `B: [a, b, ...]`
-  --threshold a,b,...   the bound B, one value per component
+  --B a,b,...           the budget B, one value per component
+  --B-file F            read B from a yaml holding `B: [a, b, ...]`
   --workers N           number of workers (default 1)
   --ablation MODE       both | accept | reject | none      (default both)
   --selection MODE      weighted | uniform | oldest        (default weighted)
@@ -350,7 +350,7 @@ fn cmd_search(args: &[String]) -> i32 {
         Err(e) => return fail(&e),
     };
 
-    let from_file = match args.flag("bound-file") {
+    let from_file = match args.flag("B-file") {
         Some(p) => match bound_file(p) {
             Ok(v) => Some(v),
             Err(e) => return fail(&e),
@@ -359,7 +359,7 @@ fn cmd_search(args: &[String]) -> i32 {
     };
     let threshold = match (
         from_file.as_ref().map(|v| v.as_slice()),
-        args.flag("threshold"),
+        args.flag("B"),
     ) {
         (Some(v), _) if v.len() == tree.k => v.to_vec(),
         (Some(v), _) => {
@@ -380,7 +380,7 @@ fn cmd_search(args: &[String]) -> i32 {
             }
             Err(e) => return fail(&e),
         },
-        (None, None) => return fail("give --bound-file or --threshold"),
+        (None, None) => return fail("give --B or --B-file"),
     };
 
     let print_strategy = args.flag("print-strategy").is_some();

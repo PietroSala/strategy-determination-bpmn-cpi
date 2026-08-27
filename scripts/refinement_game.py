@@ -217,7 +217,7 @@ def paco_check(key: str, bound: list[Fraction], workers: int, timeout: int,
     question and not two ways of accounting for the work.
     """
     cmd = [str(PACO), "search", key,
-           "--threshold", ",".join(decimal(b) for b in bound),
+           "--B", ",".join(decimal(b) for b in bound),
            "--root", str(INSTANCES), "--workers", str(workers),
            "--epsilon", PACO_EPSILON, "--print-size", "1"]
     if ablation:
