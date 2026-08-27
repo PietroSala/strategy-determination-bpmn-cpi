@@ -58,6 +58,9 @@ pub struct Meta {
     pub independent: u32,
     pub process_number: u32,
     pub dimensions: usize,
+    /// The names of the impact components, in the order of the vectors;
+    /// empty when the file does not carry them.
+    pub impact_names: Vec<String>,
     pub mode: String,
     pub seed: u64,
     pub tasks: u32,
@@ -268,6 +271,15 @@ impl<'a> Parser<'a> {
                 "independent" => self.meta.independent = num(self, value)? as u32,
                 "process_number" => self.meta.process_number = num(self, value)? as u32,
                 "dimensions" => self.meta.dimensions = num(self, value)? as usize,
+                "impact_names" => {
+                    self.meta.impact_names = value
+                        .trim_start_matches('[')
+                        .trim_end_matches(']')
+                        .split(',')
+                        .map(|n| n.trim().to_string())
+                        .filter(|n| !n.is_empty())
+                        .collect();
+                }
                 "mode" => self.meta.mode = value.to_string(),
                 "seed" => self.meta.seed = num(self, value)?,
                 "tasks" => self.meta.tasks = num(self, value)? as u32,

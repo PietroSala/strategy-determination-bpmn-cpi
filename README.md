@@ -66,6 +66,36 @@ may be named on the command line either by its path or, when a grid of
 instances is laid out as `<root>/N-nested/M-independent/P-process_number/
 D-mode.yaml`, by the key `N-M-P-D-mode` together with `--root <root>`.
 
+## Writing an instance
+
+Instances can be written directly, in a grammar smaller than the YAML:
+
+```
+process ::= task | "(" process op process ")"
+op      ::= "->" | "||" | "^" | "^[" prob "]"
+task    ::= "(" name "," duration ")"
+        |   "(" name "," duration "," "{" name ":" value "," ... "}" ")"
+```
+
+`->` is a sequence, `||` a parallel composition, `^` a choice and `^[p]` a
+nature node taking its left operand with probability `p` in `(0, 1)`. Every
+composition carries its own parentheses, so no precedence exists to remember.
+A duration is a positive integer. The map of a task names only the impacts
+that are strictly positive: an absent name is zero, and a task may end at
+the duration, or carry `{}`, both meaning every impact zero. `#` starts a
+comment to the end of the line. The names are collected over the whole
+process in the order they first appear; the emitted file lists them as
+`impact_names`, and that order is the meaning of every `impact` vector and
+of every budget `--B` you pass.
+
+`examples/line.cpi` is a seven-task manufacturing line in this grammar, and
+the whole flow is one pipe:
+
+```sh
+./target/release/sdcpi parse --file examples/line.cpi > line.yaml
+./target/release/sdcpi determine line.yaml --B 100,8
+```
+
 ## The question
 
 Because chance is part of the model, a single run proves nothing; what the
@@ -93,6 +123,10 @@ companions for exploring an instance.
 sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
                                              is there a strategy whose expected
                                              impact fits the budget, and which one
+
+sdcpi parse     (<process> | --file F)       turn a process written in the grammar
+                                             below into an instance file, on
+                                             standard output
 
 sdcpi info    <instance>                     what the file holds: sizes, counts
 sdcpi bound   <instance>                     the two estimates at the start: one
