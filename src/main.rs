@@ -1,15 +1,14 @@
-//! `sdcpi`: on-the-fly strategy synthesis for BPMN+CPI processes.
+//! `sdcpi`: strategy determination for BPMN+CPI processes.
 //!
-//!     sdcpi info    <instance>
-//!     sdcpi optima  <instance>
-//!     sdcpi verify  <instance> [--bounds-dir DIR]
-//!     sdcpi search  <instance> (--B a,b,... | --B-file F) [options]
+//!     sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
+//!     sdcpi info      <instance>
+//!     sdcpi bound     <instance>
+//!     sdcpi optima    <instance>
 //!
 //! An instance is either a path to a YAML file or a key of the grid,
 //! `<nested>-<independent>-<process_number>-<dimensions>-<mode>`, resolved under
 //! `--root` (`bpmn-cpi-benchmarks` beside the executable tree by default).
 
-mod achievable;
 mod arena;
 mod bound;
 mod exact;
@@ -19,7 +18,6 @@ mod tables;
 mod tree;
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use search::{Ablation, Answer, Config, Selection, Steal};
@@ -35,12 +33,8 @@ fn main() {
     let code = match args[0].as_str() {
         "info" => cmd_info(&args[1..]),
         "optima" => cmd_optima(&args[1..]),
-        "verify" => cmd_verify(&args[1..]),
-        "search" => cmd_search(&args[1..]),
-        "check" => cmd_check(&args[1..]),
+        "determine" => cmd_determine(&args[1..]),
         "bound" => cmd_bound(&args[1..]),
-        "tight" => cmd_tight(&args[1..]),
-        "sweep" => cmd_sweep(&args[1..]),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
             0
@@ -56,15 +50,12 @@ fn main() {
 const USAGE: &str = "\
 sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
 
-  sdcpi info    <instance>
-  sdcpi optima  <instance>
-  sdcpi verify  <instance> [--bounds-dir DIR]
-  sdcpi search  <instance> (--B a,b,... | --B-file F) [options]
-  sdcpi bound   <instance>
-  sdcpi sweep   <listfile> [--threads N]
-  sdcpi check   <instance> [--alphas a,b,...] [--ablations ...] [--cap N]
+  sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
+  sdcpi info      <instance>
+  sdcpi bound     <instance>
+  sdcpi optima    <instance>
 
-options for search
+options for determine
   --B a,b,...           the budget B, one value per component
   --B-file F            read B from a yaml holding `B: [a, b, ...]`
   --workers N           number of workers (default 1)
@@ -84,7 +75,7 @@ options for search
                         only the outcome is reported
   --root DIR            where the grid sits, for a key rather than a path
 
-options for optima and verify
+options for optima
   --max-states N        give up past this many choice states (default 2000000)
 ";
 
@@ -210,6 +201,16 @@ fn vector(text: &str) -> Result<Vec<f64>, String> {
 // ---------------------------------------------------------------------------
 // commands
 // ---------------------------------------------------------------------------
+fn fail(message: &str) -> i32 {
+    eprintln!("sdcpi: {message}");
+    2
+}
+
+fn fmt_vec(v: &[f64]) -> String {
+    let parts: Vec<String> = v.iter().map(|x| format!("{x:.6}")).collect();
+    format!("[{}]", parts.join(", "))
+}
+
 
 fn cmd_info(args: &[String]) -> i32 {
     let args = match parse_args(args) {
@@ -279,68 +280,7 @@ fn cmd_optima(args: &[String]) -> i32 {
         Err(e) => fail(&format!("{e:?}")),
     }
 }
-
-fn cmd_verify(args: &[String]) -> i32 {
-    let args = match parse_args(args) {
-        Ok(a) => a,
-        Err(e) => return fail(&e),
-    };
-    let (path, tree) = match load(&args) {
-        Ok(v) => v,
-        Err(e) => return fail(&e),
-    };
-    let records = tables::Records::new();
-    let store = Store::new(&tree, &records, 1);
-    let max_states = args
-        .flag("max-states")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(2_000_000usize);
-    let ours = match exact::optima(&store, max_states) {
-        Ok(o) => o,
-        Err(e) => return fail(&format!("{e:?}")),
-    };
-    let dir = args.flag("bounds-dir").unwrap_or("benchmarks-bounds");
-    let reference = match reference_path(&path, dir) {
-        Some(p) => p,
-        None => return fail("cannot place the instance inside the grid"),
-    };
-    let text = match std::fs::read_to_string(&reference) {
-        Ok(t) => t,
-        Err(e) => return fail(&format!("{}: {e}", reference.display())),
-    };
-    let theirs = match parse_reference(&text) {
-        Some(v) => v,
-        None => return fail(&format!("{}: no bounds in it", reference.display())),
-    };
-    if theirs.len() != tree.k {
-        return fail(&format!(
-            "{} carries {} components against {} declared",
-            reference.display(),
-            theirs.len(),
-            tree.k
-        ));
-    }
-    let mut worst: f64 = 0.0;
-    for c in 0..tree.k {
-        let dmin = (ours.min[c] - theirs[c].0).abs();
-        let dmax = (ours.max[c] - theirs[c].1).abs();
-        worst = worst.max(dmin).max(dmax);
-        println!(
-            "component {c}  min {:.10} / {:.10}  max {:.10} / {:.10}",
-            ours.min[c], theirs[c].0, ours.max[c], theirs[c].1
-        );
-    }
-    println!("largest difference {worst:.3e}");
-    if worst <= 1e-6 {
-        println!("AGREE");
-        0
-    } else {
-        println!("DISAGREE");
-        1
-    }
-}
-
-fn cmd_search(args: &[String]) -> i32 {
+fn cmd_determine(args: &[String]) -> i32 {
     let args = match parse_args(args) {
         Ok(a) => a,
         Err(e) => return fail(&e),
@@ -529,336 +469,6 @@ fn cmd_bound(args: &[String]) -> i32 {
     }
     0
 }
-
-/// How far the two bounds sit from the exact optima, at every reachable choice
-/// state and not only at the initial one.
-fn cmd_tight(args: &[String]) -> i32 {
-    let args = match parse_args(args) {
-        Ok(a) => a,
-        Err(e) => return fail(&e),
-    };
-    let (_, tree) = match load(&args) {
-        Ok(v) => v,
-        Err(e) => return fail(&e),
-    };
-    let records = tables::Records::new();
-    let store = Store::new(&tree, &records, 1);
-    let cap: usize = args.flag("max-states").and_then(|v| v.parse().ok()).unwrap_or(400_000);
-    match exact::tightness(&store, cap) {
-        Ok((du, dl, n)) => {
-            println!("instance      {}", tree.meta.key);
-            println!("choice states {n}");
-            println!("max |U_s - max| {du:.3e}");
-            println!("max |L_s - min| {dl:.3e}");
-            println!("{}", if du <= 1e-9 && dl <= 1e-9 { "EXACT" } else { "LOOSE" });
-            0
-        }
-        Err(e) => {
-            println!("SKIP {e:?}");
-            3
-        }
-    }
-}
-
-/// Checks the search against the exact set of achievable vectors, on the same
-/// instance and a series of thresholds. The two share the parser, the semantics
-/// and the tables, and share nothing of how the question is answered: one
-/// enumerates every deterministic policy up to Pareto dominance, the other
-/// prunes with the two bounds and stops at the first frontier that passes.
-fn cmd_check(args: &[String]) -> i32 {
-    let args = match parse_args(args) {
-        Ok(a) => a,
-        Err(e) => return fail(&e),
-    };
-    let (_, tree) = match load(&args) {
-        Ok(v) => v,
-        Err(e) => return fail(&e),
-    };
-    let cap: usize = args.flag("cap").and_then(|v| v.parse().ok()).unwrap_or(20_000);
-    let alphas = match args.flag("alphas") {
-        Some(t) => match vector(t) {
-            Ok(v) => v,
-            Err(e) => return fail(&e),
-        },
-        None => vec![-0.05, 0.0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0, 1.05],
-    };
-
-    let records = tables::Records::new();
-    let store = Store::new(&tree, &records, 1);
-    let o = match exact::optima(&store, 2_000_000usize) {
-        Ok(o) => o,
-        Err(e) => return fail(&format!("{e:?}")),
-    };
-    let set = match achievable::achievable(&store, cap) {
-        Ok(s) => s,
-        Err(e) => {
-            println!("instance {} SKIP {e:?}", tree.meta.key);
-            return 3;
-        }
-    };
-    println!("instance      {}", tree.meta.key);
-    println!("pareto points {}", set.len());
-
-    let workers = args.flag("workers").and_then(|v| v.parse().ok()).unwrap_or(1);
-    let selection = match args.flag("selection").map(Selection::parse) {
-        None => Selection::Weighted,
-        Some(Some(s)) => s,
-        Some(None) => return fail("--selection wants weighted, uniform or oldest"),
-    };
-    let search_timeout = args
-        .flag("search-timeout")
-        .and_then(|v| v.parse::<f64>().ok())
-        .unwrap_or(30.0);
-    let ablations: Vec<Ablation> = match args.flag("ablations") {
-        Some(t) => {
-            let mut v = Vec::new();
-            for piece in t.split(',') {
-                match Ablation::parse(piece.trim()) {
-                    Some(a) => v.push(a),
-                    None => return fail("--ablations wants both, accept, reject or none"),
-                }
-            }
-            v
-        }
-        None => vec![
-            Ablation::Both,
-            Ablation::AcceptOnly,
-            Ablation::RejectOnly,
-            Ablation::Neither,
-        ],
-    };
-    let epsilon: f64 = args.flag("epsilon").and_then(|v| v.parse().ok()).unwrap_or(0.0);
-    let mut bad = 0;
-    for (i, alpha) in alphas.iter().enumerate() {
-        let b: Vec<f64> = (0..tree.k)
-            .map(|c| o.min[c] + alpha * (o.max[c] - o.min[c]))
-            .collect();
-        let truth = achievable::meets(&set, &b);
-        for &ablation in &ablations {
-            let cfg = Config {
-                threshold: b.clone(),
-                record_strategy: false,
-                steal: Steal::Ring,
-                epsilon,
-                workers,
-                ablation,
-                selection,
-                seed: 20260816 + i as u64,
-                timeout: Some(Duration::from_secs_f64(search_timeout)),
-            };
-            let (answer, _) = search::search(&tree, cfg);
-            let got = match answer {
-                Answer::Yes(_) => Some(true),
-                Answer::No => Some(false),
-                _ => None,
-            };
-            let verdict = match got {
-                Some(g) if g == truth => "ok",
-                Some(_) => {
-                    bad += 1;
-                    "MISMATCH"
-                }
-                None => "inconclusive",
-            };
-            println!(
-                "alpha {alpha:+.2}  truth {truth:<5}  ablation {ablation:?}  {verdict}"
-            );
-            if verdict == "MISMATCH" {
-                println!("    B      {}", fmt_exact(&b));
-                for p in set.iter().take(4) {
-                    let d: Vec<f64> = p.iter().zip(&b).map(|(x, y)| x - y).collect();
-                    println!("    point  {}", fmt_exact(p));
-                    println!("    p - B  {}", fmt_exact(&d));
-                }
-            }
-        }
-    }
-    if bad == 0 {
-        println!("ALL AGREE");
-        0
-    } else {
-        println!("{bad} MISMATCHES");
-        1
-    }
-}
-
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
-
-fn fail(message: &str) -> i32 {
-    eprintln!("sdcpi: {message}");
-    2
-}
-
-fn fmt_exact(v: &[f64]) -> String {
-    let parts: Vec<String> = v.iter().map(|x| format!("{x:.17e}")).collect();
-    format!("[{}]", parts.join(", "))
-}
-
-fn fmt_vec(v: &[f64]) -> String {
-    let parts: Vec<String> = v.iter().map(|x| format!("{x:.6}")).collect();
-    format!("[{}]", parts.join(", "))
-}
-
-/// The file of `benchmarks-bounds` that mirrors an instance path.
-fn reference_path(instance: &Path, dir: &str) -> Option<PathBuf> {
-    let mut parts: Vec<_> = instance.components().collect();
-    if parts.len() < 4 {
-        return None;
-    }
-    let tail: PathBuf = parts.split_off(parts.len() - 4).iter().collect();
-    let mut head: PathBuf = parts.iter().collect();
-    head.pop(); // drop `bpmn-cpi-benchmarks`
-    Some(head.join(dir).join(tail))
-}
-
-/// The `min` and `max` of every component of a `benchmarks-bounds` file.
-fn parse_reference(text: &str) -> Option<Vec<(f64, f64)>> {
-    let mut out: Vec<(f64, f64)> = Vec::new();
-    let mut current: Option<(f64, f64)> = None;
-    for line in text.lines() {
-        let t = line.trim();
-        if let Some(rest) = t.strip_prefix("- component:") {
-            if let Some(c) = current.take() {
-                out.push(c);
-            }
-            let _ = rest;
-            current = Some((f64::NAN, f64::NAN));
-        } else if let Some(rest) = t.strip_prefix("min:") {
-            if let Some(c) = current.as_mut() {
-                c.0 = rest.trim().parse().ok()?;
-            }
-        } else if let Some(rest) = t.strip_prefix("max:") {
-            if let Some(c) = current.as_mut() {
-                c.1 = rest.trim().parse().ok()?;
-            }
-        }
-    }
-    if let Some(c) = current {
-        out.push(c);
-    }
-    if out.is_empty() {
-        None
-    } else {
-        Some(out)
-    }
-}
-
-/// Compares `U` and `L` at the initial state, computed by the recursion of
-/// Definition 12 alone, with the least and the greatest expected impact Storm
-/// returned, over a whole list of instances in one process.
-///
-/// This is the check the exactness result asks for at scale. The recursion is
-/// one traversal of the tree, so it runs on every instance of the grid,
-/// including the ones no model checker can build, and comparing it with Storm
-/// wherever Storm did answer is what says the two compute the same numbers.
-fn cmd_sweep(args: &[String]) -> i32 {
-    let args = match parse_args(args) {
-        Ok(a) => a,
-        Err(e) => return fail(&e),
-    };
-    let list = match args.positional.first() {
-        Some(p) => p.clone(),
-        None => return fail("give a file listing the instances"),
-    };
-    let text = match std::fs::read_to_string(&list) {
-        Ok(t) => t,
-        Err(e) => return fail(&format!("{list}: {e}")),
-    };
-    let paths: Vec<PathBuf> = text
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .map(PathBuf::from)
-        .collect();
-    let dir = args.flag("bounds-dir").unwrap_or("benchmarks-bounds").to_string();
-    let threads: usize = args
-        .flag("threads")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(8);
-
-    let next = std::sync::atomic::AtomicUsize::new(0);
-    let agree = std::sync::atomic::AtomicUsize::new(0);
-    let disagree = std::sync::atomic::AtomicUsize::new(0);
-    let skipped = std::sync::atomic::AtomicUsize::new(0);
-    let worst = Mutex::new((0.0f64, String::new()));
-    let started = Instant::now();
-
-    std::thread::scope(|scope| {
-        for _ in 0..threads.max(1) {
-            let (paths, dir, next, agree, disagree, skipped, worst) =
-                (&paths, &dir, &next, &agree, &disagree, &skipped, &worst);
-            scope.spawn(move || loop {
-                let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                if i >= paths.len() {
-                    return;
-                }
-                let path = &paths[i];
-                let tree = match Tree::read(path) {
-                    Ok(t) => t,
-                    Err(_) => {
-                        skipped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        continue;
-                    }
-                };
-                let records = tables::Records::new();
-                let store = Store::new(&tree, &records, 1);
-                let b = bound::bounds(&tree, &store.engine.initial_state());
-                let reference = match reference_path(path, dir) {
-                    Some(p) => p,
-                    None => {
-                        skipped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        continue;
-                    }
-                };
-                let theirs = match std::fs::read_to_string(&reference)
-                    .ok()
-                    .and_then(|t| parse_reference(&t))
-                {
-                    Some(v) if v.len() == tree.k => v,
-                    _ => {
-                        skipped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        continue;
-                    }
-                };
-                let mut d: f64 = 0.0;
-                for c in 0..tree.k {
-                    d = d.max((b.lower[c] - theirs[c].0).abs());
-                    d = d.max((b.upper[c] - theirs[c].1).abs());
-                }
-                // Storm prints ten significant digits, so anything below that is
-                // agreement and not a difference.
-                let scale = theirs
-                    .iter()
-                    .map(|(lo, hi)| lo.abs().max(hi.abs()))
-                    .fold(1.0f64, f64::max);
-                if d <= 1e-6 * scale {
-                    agree.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                } else {
-                    disagree.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                }
-                let mut w = worst.lock().unwrap();
-                if d > w.0 {
-                    *w = (d, path.display().to_string());
-                }
-            });
-        }
-    });
-
-    let a = agree.load(std::sync::atomic::Ordering::Relaxed);
-    let dis = disagree.load(std::sync::atomic::Ordering::Relaxed);
-    let sk = skipped.load(std::sync::atomic::Ordering::Relaxed);
-    let w = worst.lock().unwrap();
-    println!("instances     {}", paths.len());
-    println!("agree         {a}");
-    println!("disagree      {dis}");
-    println!("skipped       {sk}");
-    println!("worst diff    {:.3e}  at {}", w.0, w.1);
-    println!("seconds       {:.2}", started.elapsed().as_secs_f64());
-    if dis == 0 {
-        0
-    } else {
-        1
-    }
-}

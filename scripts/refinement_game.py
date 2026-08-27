@@ -216,7 +216,7 @@ def paco_check(key: str, bound: list[Fraction], workers: int, timeout: int,
     the model checker is timed, so that what is compared is two answers to one
     question and not two ways of accounting for the work.
     """
-    cmd = [str(PACO), "search", key,
+    cmd = [str(PACO), "determine", key,
            "--B", ",".join(decimal(b) for b in bound),
            "--root", str(INSTANCES), "--workers", str(workers),
            "--epsilon", PACO_EPSILON, "--print-size", "1"]
