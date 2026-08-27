@@ -88,6 +88,9 @@ pub struct Tree {
     pub tasks: Vec<u32>,
     /// The identifiers of the XOR nodes, in increasing order.
     pub xors: Vec<u32>,
+    /// The name of the task of identifier `id` at `task_names[id]`, the empty
+    /// string at an internal node and at the filler.
+    pub task_names: Vec<String>,
     pub meta: Meta,
 }
 
@@ -167,6 +170,7 @@ struct Parser<'a> {
     // Filled as the tree is walked; `nodes[0]` is the filler.
     nodes: Vec<Node>,
     impacts: Vec<f64>,
+    names: Vec<String>,
 }
 
 /// The indentation of a line, in spaces, and its content with the indentation
@@ -184,6 +188,7 @@ impl<'a> Parser<'a> {
             meta: Meta::default(),
             nodes: Vec::new(),
             impacts: Vec::new(),
+            names: Vec::new(),
         }
     }
 
@@ -218,6 +223,7 @@ impl<'a> Parser<'a> {
             n_nodes + 1
         ];
         self.impacts = vec![0.0; (n_nodes + 1) * k];
+        self.names = vec![String::new(); n_nodes + 1];
 
         let root = self.node(0)?;
 
@@ -230,6 +236,7 @@ impl<'a> Parser<'a> {
             impacts: std::mem::take(&mut self.impacts),
             tasks: Vec::new(),
             xors: Vec::new(),
+            task_names: std::mem::take(&mut self.names),
             meta: std::mem::take(&mut self.meta),
         };
         for id in 1..=tree.n_nodes {
@@ -323,6 +330,11 @@ impl<'a> Parser<'a> {
             "choice" => Kind::Choice,
             "nature" => Kind::Nature,
             other => return self.err(format!("unknown node kind {other:?}")),
+        };
+        let task_name = if kind == Kind::Task {
+            kind_value.to_string()
+        } else {
+            String::new()
         };
         let prob = if kind == Kind::Nature {
             let p: f64 = kind_value
@@ -433,6 +445,7 @@ impl<'a> Parser<'a> {
             return self.err("an internal node is missing a branch");
         }
 
+        self.names[id as usize] = task_name;
         self.nodes[id as usize] = Node {
             kind,
             low,

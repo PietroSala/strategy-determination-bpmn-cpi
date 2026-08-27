@@ -16,6 +16,7 @@ mod exact;
 mod search;
 mod state;
 mod tables;
+mod to_prism;
 mod tree;
 
 use std::path::{Path, PathBuf};
@@ -36,6 +37,7 @@ fn main() {
         "optima" => cmd_optima(&args[1..]),
         "determine" => cmd_determine(&args[1..]),
         "parse" => cmd_parse(&args[1..]),
+        "to_prism" => cmd_to_prism(&args[1..]),
         "bound" => cmd_bound(&args[1..]),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
@@ -54,6 +56,7 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
 
   sdcpi determine <instance> (--B a,b,... | --B-file F) [options]
   sdcpi parse     (<process> | --file F) [--out F]
+  sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
   sdcpi info      <instance>
   sdcpi bound     <instance>
   sdcpi optima    <instance>
@@ -62,12 +65,22 @@ the grammar of parse, written inline or in the file
   process ::= region (, region)* | region op region      op ::= || | ^ | ^[p]
   region  ::= task | ( process )
   task    ::= ( name , duration )  |  ( name , duration , { name: value, ... } )
-  -> sequence, || parallel, ^ a choice, ^[p] a nature node taking its left
+  , sequence, || parallel, ^ a choice, ^[p] a nature node taking its left
   operand with probability p in (0,1); durations positive integers; the map
   names only the impacts that are strictly positive, {} and no map both
   meaning all zero; # comments to end of line. The instance file is written
   to standard output, identifiers in-order, impact_names in the order the
   names first appear, the vectors mapped by that order.
+
+options for to_prism
+  --encode-history B    true, the default, records in the state the branch
+                        taken at every choice and every nature node, so a
+                        memoryless (positional) scheduler of the model
+                        checker ranges over the history-dependent policies
+                        of the instance; false emits the plain model, whose
+                        states forget closed decisions, right for every
+                        single-component query. The model is written to
+                        standard output, or to --out F
 
 options for determine
   --B a,b,...           the budget B, one value per component, or the named
@@ -405,6 +418,42 @@ fn cmd_optima(args: &[String]) -> i32 {
         Err(e) => fail(&format!("{e:?}")),
     }
 }
+fn cmd_to_prism(args: &[String]) -> i32 {
+    let args = match parse_args(args) {
+        Ok(a) => a,
+        Err(e) => return fail(&e),
+    };
+    let (path, tree) = match load(&args) {
+        Ok(v) => v,
+        Err(e) => return fail(&e),
+    };
+    let history = match args.flag("encode-history") {
+        None | Some("true") => true,
+        Some("false") => false,
+        Some(v) => return fail(&format!("--encode-history wants true or false, found {v:?}")),
+    };
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let file_name = path
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let text = to_prism::emit(&tree, &stem, &file_name, history);
+    match args.flag("out") {
+        Some(p) => match std::fs::write(p, &text) {
+            Ok(()) => 0,
+            Err(e) => fail(&format!("{p}: {e}")),
+        },
+        None => {
+            use std::io::Write;
+            let _ = std::io::stdout().write_all(text.as_bytes());
+            0
+        }
+    }
+}
+
 fn cmd_determine(args: &[String]) -> i32 {
     let args = match parse_args(args) {
         Ok(a) => a,

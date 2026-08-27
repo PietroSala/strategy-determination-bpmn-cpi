@@ -111,6 +111,35 @@ against `impact_names` before starting:
 ./target/release/sdcpi determine line.yaml --B '{hours: 8, kwh: 100}'
 ```
 
+## Model checker encodings
+
+`sdcpi to_prism` writes the instance as a PRISM `mdp` model, one guarded
+command per move of the semantics, one bounded integer variable per node,
+and one transition reward structure per impact component, named `impact0`,
+`impact1` and so on, paid on the transitions that complete tasks. The model
+loads in PRISM and in Storm, and the header of the emitted file carries the
+query shapes to run against it.
+
+There are two encodings, and the flag `--encode-history` picks one:
+
+- `true`, the default, records in the state the branch taken at every
+  choice and every nature node, written once and never cleared. The plain
+  state forgets a decision once its region closes, so two runs that decided
+  differently meet again, and a memoryless scheduler on the plain model
+  cannot react to a closed decision. With the trail those runs stay apart,
+  while the values and the probabilities do not move, so a memoryless
+  (positional) deterministic scheduler of the model checker ranges exactly
+  over the deterministic strategies of the instance, which is the class
+  `determine` searches. This is the encoding for multi-objective queries
+  restricted to pure schedulers.
+- `false` emits the plain model, smaller, and right for every question
+  about a single component, where a memoryless scheduler is already
+  optimal.
+
+```sh
+./target/release/sdcpi to_prism line.yaml --out line.prism
+```
+
 ## The question
 
 Because chance is part of the model, a single run proves nothing; what the
@@ -143,6 +172,12 @@ sdcpi parse     (<process> | --file F) [--out F]
                                              turn a process written in the grammar
                                              below into an instance file, on
                                              standard output or into --out
+
+sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
+                                             translate the instance into a PRISM
+                                             model, on standard output or into
+                                             --out; see below for the two
+                                             encodings
 
 sdcpi info    <instance>                     what the file holds: sizes, counts
 sdcpi bound   <instance>                     the two estimates at the start: one
