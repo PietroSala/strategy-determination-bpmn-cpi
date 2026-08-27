@@ -61,10 +61,8 @@ tree:
 ```
 
 The `id` fields number the nodes left to right and must be distinct; the
-header keys above `tree:` are bookkeeping and optional, except that a file
-may be named on the command line either by its path or, when a grid of
-instances is laid out as `<root>/N-nested/M-independent/P-process_number/
-D-mode.yaml`, by the key `N-M-P-D-mode` together with `--root <root>`.
+header keys above `tree:` are bookkeeping and optional. An instance is
+always named on the command line by its path.
 
 ## Writing an instance
 
@@ -219,7 +217,6 @@ sdcpi optima  <instance>                     the exact least and greatest expect
 | `--steal MODE` | how an idle worker finds work: from its ring neighbour (`ring`) or from anyone (`any`) |
 | `--print-size 1` | on `yes`, print how large the returned strategy is: its situations, how many stay undecided, how many decisions it prescribes |
 | `--print-strategy 1` | print the strategy itself; without this the decisions are not recorded, which is faster, and only the answer is reported |
-| `--root DIR` | the grid directory, when the instance is a key |
 
 ## Output
 

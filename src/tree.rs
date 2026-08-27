@@ -125,8 +125,9 @@ impl Tree {
     }
 
     pub fn read(path: &Path) -> Result<Tree, ParseError> {
+        // the caller names the path when it reports, so the error does not
         let text = std::fs::read_to_string(path)
-            .map_err(|e| ParseError::new(0, format!("{}: {}", path.display(), e)))?;
+            .map_err(|e| ParseError::new(0, e.to_string()))?;
         Tree::parse(&text)
     }
 

@@ -208,7 +208,7 @@ def storm_check(model: Path, root: int, bound: list[Fraction],
             int(states.group(1)) if states else None, None)
 
 
-def paco_check(key: str, bound: list[Fraction], workers: int, timeout: int,
+def paco_check(src: Path, bound: list[Fraction], workers: int, timeout: int,
                ablation: str | None = None):
     """The same question, put to our own search, and timed the same way.
 
@@ -216,9 +216,9 @@ def paco_check(key: str, bound: list[Fraction], workers: int, timeout: int,
     the model checker is timed, so that what is compared is two answers to one
     question and not two ways of accounting for the work.
     """
-    cmd = [str(PACO), "determine", key,
+    cmd = [str(PACO), "determine", str(src),
            "--B", ",".join(decimal(b) for b in bound),
-           "--root", str(INSTANCES), "--workers", str(workers),
+           "--workers", str(workers),
            "--epsilon", PACO_EPSILON, "--print-size", "1"]
     if ablation:
         cmd += ["--ablation", ablation]
@@ -352,7 +352,7 @@ def play(rel: Path, rounds: int, checker: str, replay: str | None,
         try:
             if checker in ABLATION:
                 answer, seconds, inner, n, size = paco_check(
-                    key, bound, workers, timeout, ABLATION[checker])
+                    src, bound, workers, timeout, ABLATION[checker])
             else:
                 answer, seconds, inner, n, size = storm_check(
                     model, root, bound, live, timeout)

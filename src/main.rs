@@ -5,9 +5,7 @@
 //!     sdcpi bound     <instance>
 //!     sdcpi optima    <instance>
 //!
-//! An instance is either a path to a YAML file or a key of the grid,
-//! `<nested>-<independent>-<process_number>-<dimensions>-<mode>`, resolved under
-//! `--root` (`bpmn-cpi-benchmarks` beside the executable tree by default).
+//! An instance is a path to a YAML file.
 
 mod arena;
 mod parse;
@@ -19,7 +17,7 @@ mod tables;
 mod to_prism;
 mod tree;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use search::{Ablation, Answer, Config, Selection, Steal};
@@ -112,7 +110,6 @@ options for determine
   --print-strategy 1    print the strategy at the end. Without it the decisions
                         are never recorded, which the search is faster for, and
                         only the outcome is reported
-  --root DIR            where the grid sits, for a key rather than a path
 
 options for optima
   --max-states N        give up past this many choice states (default 2000000)
@@ -163,38 +160,12 @@ impl Args {
     }
 }
 
-fn resolve(spec: &str, root: Option<&str>) -> Result<PathBuf, String> {
-    let as_path = Path::new(spec);
-    if spec.ends_with(".yaml") || as_path.exists() {
-        return Ok(as_path.to_path_buf());
-    }
-    let parts: Vec<&str> = spec.splitn(5, '-').collect();
-    if parts.len() != 5 {
-        return Err(format!(
-            "{spec:?} is neither a path nor a key of the form nested-independent-number-dimensions-mode"
-        ));
-    }
-    let base = match root {
-        Some(r) => PathBuf::from(r),
-        None => PathBuf::from("bpmn-cpi-benchmarks"),
-    };
-    let path = base
-        .join(format!("{}-nested", parts[0]))
-        .join(format!("{}-independent", parts[1]))
-        .join(format!("{}-process_number", parts[2]))
-        .join(format!("{}-{}.yaml", parts[3], parts[4]));
-    if !path.exists() {
-        return Err(format!("{} does not exist", path.display()));
-    }
-    Ok(path)
-}
-
 fn load(args: &Args) -> Result<(PathBuf, Tree), String> {
     let spec = args
         .positional
         .first()
         .ok_or_else(|| "no instance given".to_string())?;
-    let path = resolve(spec, args.flag("root"))?;
+    let path = PathBuf::from(spec);
     let tree = Tree::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     Ok((path, tree))
 }
