@@ -86,7 +86,17 @@ undecided: any decision there fits the budget.
 
 ## Commands
 
+The core of the library is `search`; `info`, `bound` and `optima` are its
+companions for exploring an instance; `verify`, `sweep` and `check` are
+validation harnesses, there for the scripts and for a reader who wants to
+distrust the implementation, and never needed to use the library.
+
 ```
+sdcpi search  <instance> (--B a,b,... | --B-file F) [options]
+                                             the tool: is there a strategy whose
+                                             expected impact fits the budget, and
+                                             which one
+
 sdcpi info    <instance>                     what the file holds: sizes, counts
 sdcpi bound   <instance>                     the two estimates at the start: one
                                              traversal of the tree, instant on any
@@ -95,7 +105,7 @@ sdcpi optima  <instance>                     the exact least and greatest expect
                                              impact per component, over all
                                              strategies: walks every decision
                                              situation and may hit --max-states
-sdcpi search  <instance> (--B ... | --B-file F) [options]
+
 sdcpi verify  <instance> [--bounds-dir DIR]  compare the optima against reference
                                              values stored on disk
 sdcpi sweep   <listfile> [--threads N]       optima for every instance in a list
