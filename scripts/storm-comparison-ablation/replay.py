@@ -115,8 +115,35 @@ def main() -> int:
                         "not a truncation: what it covers, it covers whole")
     p.add_argument("--jobs", type=int, default=1,
                    help="instances at a time. One keeps the timings clean")
+    p.add_argument("--from-scratch", action="store_true",
+                   help="forget every answer this follower has already "
+                        "recorded, within --max-diagonal when given, and "
+                        "replay the recorded questions from the beginning. "
+                        "The questions of the leader are never touched, and "
+                        "under --dry-run the forgetting is only counted")
     p.add_argument("--dry-run", action="store_true")
     a = p.parse_args()
+
+    if a.from_scratch:
+        if a.follower == a.leader:
+            print("--from-scratch with the follower equal to the leader would "
+                  "erase the recorded questions themselves; refusing",
+                  file=sys.stderr)
+            return 2
+        forgotten = 0
+        for f in sorted(REFINEMENTS.rglob(f"*-{a.follower}.yaml")):
+            rel = f.relative_to(REFINEMENTS)
+            if a.max_diagonal:
+                d = (int(rel.parts[0].split("-")[0])
+                     + int(rel.parts[1].split("-")[0]))
+                if d > a.max_diagonal:
+                    continue
+            if not a.dry_run:
+                f.unlink()
+            forgotten += 1
+        verb = "would be forgotten" if a.dry_run else "forgotten"
+        print(f"{forgotten} recorded answers of {a.follower} {verb}",
+              flush=True)
 
     work = outstanding(a.leader, a.follower, a.rounds)
     if a.max_diagonal:

@@ -33,7 +33,10 @@ python3 scripts/storm-comparison-ablation/make_figures.py --replay-experiment
 
 regenerates every number and every figure of the paper from the recorded
 rounds, and `replay.py --replay-experiment` re-asks the recorded questions
-themselves. A stage pointed at an experiment writes there too, so copy
+themselves, continuing from wherever the record stands; with
+`--from-scratch` it first forgets every answer the follower has recorded,
+within `--max-diagonal` when given, and re-asks from the beginning, the
+questions of the leader never being touched. A stage pointed at an experiment writes there too, so copy
 `default_experiment/` first if the shipped record should stay pristine.
 
 ## Requirements
