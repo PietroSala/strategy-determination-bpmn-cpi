@@ -85,8 +85,12 @@ def ensure_model(rel: Path) -> Path:
     src = (INSTANCES / rel).with_suffix(".yaml")
     model = (ENCODINGS / rel).with_suffix(".prism")
     if not model.exists() or model.stat().st_mtime < src.stat().st_mtime:
-        subprocess.run([sys.executable, str(HERE / "to_prism.py"), str(src)],
-                       check=True, capture_output=True)
+        # the child computes its own data root, so the experiment of this run
+        # is forwarded, or the model would land beside the scripts
+        cmd = [sys.executable, str(HERE / "to_prism.py"), str(src)]
+        if BASE != HERE:
+            cmd += ["--replay-experiment", str(BASE)]
+        subprocess.run(cmd, check=True, capture_output=True)
     return model
 
 
