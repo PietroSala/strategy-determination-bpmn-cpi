@@ -52,6 +52,64 @@ questions of the leader never being touched. A stage pointed at an experiment wr
   Storm reads through its `--prism` flag; the PRISM tool itself is never
   invoked.
 
+## The whole flow, from nothing
+
+What follows is everything a new user runs, in order, to have the library
+working and the experiments relaunched from scratch. The only fork is the
+Python environment, and both ways lead to the same place.
+
+First the repository and the library. The build needs Rust 1.80 or later
+(`rustup` installs it in one line at rustup.rs):
+
+```sh
+git clone https://github.com/PietroSala/strategy-determination-bpmn-cpi.git
+cd strategy-determination-bpmn-cpi
+cargo build --release
+./target/release/sdcpi determine examples/tiny.yaml --B 0.9,0.7
+```
+
+Then the Python environment, one of the two:
+
+```sh
+# the conda case
+conda env create -f scripts/storm-comparison-ablation/environment.yml
+conda activate sdcpi-experiments
+```
+
+```sh
+# the pip case
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r scripts/storm-comparison-ablation/requirements.txt
+```
+
+Then the setup, which clones the source benchmark at the pinned commit and
+unpacks the recorded campaign:
+
+```sh
+python3 scripts/storm-comparison-ablation/setup.py
+```
+
+For the comparison stages, and only for them, install Storm 1.13.0 from
+stormchecker.org so that `storm` is on the PATH.
+
+From here the experiments relaunch from scratch by running the stages of
+the next section in order, stage 1 to stage 5. Two honest warnings about
+scale: the search stages take hours over the full grid, and the Storm
+pass takes days, which is why every stage resumes when interrupted, and
+why `--max-diagonal` and `--limit` exist for a first taste. And one
+reminder from the stable seed: a grid rebuilt from scratch is drawn the
+same way as the grid of the paper without being that grid, so numbers
+compared against the paper come from the recorded campaign,
+
+```sh
+python3 scripts/storm-comparison-ablation/make_results.py --replay-experiment
+python3 scripts/storm-comparison-ablation/make_figures.py --replay-experiment
+```
+
+while a run of the stages without flags measures your rebuilt grid on
+your machine.
+
 ## The stages
 
 Every command below is written from the root of the repository; the
