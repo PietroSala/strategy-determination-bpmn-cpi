@@ -86,11 +86,27 @@ impl<'a> Scanner<'a> {
             Ok(())
         } else {
             Err(format!(
-                "expected {:?} at byte {}, found {:?}",
+                "expected {:?} at byte {}, found {}",
                 c as char,
                 self.at,
-                self.text.get(self.at).map(|b| *b as char)
+                self.found(self.at)
             ))
+        }
+    }
+
+    /// What sits at a byte position, for an error message: the whole UTF-8
+    /// character, or the end of the input.
+    fn found(&self, at: usize) -> String {
+        match self.text.get(at) {
+            None => "the end of the input".to_string(),
+            Some(_) => {
+                let end = (at + 4).min(self.text.len());
+                let c = String::from_utf8_lossy(&self.text[at..end])
+                    .chars()
+                    .next()
+                    .unwrap_or('\u{FFFD}');
+                format!("{c:?}")
+            }
         }
     }
 
@@ -125,22 +141,65 @@ impl<'a> Scanner<'a> {
             self.at += 1;
         }
         let s = std::str::from_utf8(&self.text[start..self.at]).unwrap_or("");
-        s.parse::<f64>()
-            .map_err(|_| format!("expected a number at byte {start}, found {s:?}"))
+        s.parse::<f64>().map_err(|_| {
+            if s.is_empty() {
+                format!("expected a number at byte {start}, found {}", self.found(start))
+            } else {
+                format!("expected a number at byte {start}, found {s:?}")
+            }
+        })
+    }
+
+    /// A positive integer written in digits alone: no sign, no point, no
+    /// exponent, and it must fit, so nothing is rounded or saturated behind
+    /// the writer of the text.
+    fn integer(&mut self) -> Result<i64, String> {
+        self.skip();
+        let start = self.at;
+        while self.at < self.text.len() && self.text[self.at].is_ascii_digit() {
+            self.at += 1;
+        }
+        if self.at == start {
+            return Err(format!(
+                "expected an integer at byte {start}, found {}",
+                self.found(start)
+            ));
+        }
+        if matches!(self.text.get(self.at), Some(b'.') | Some(b'e') | Some(b'E')) {
+            return Err(format!(
+                "the integer at byte {start} carries a point or an exponent, and a duration is written in digits alone"
+            ));
+        }
+        std::str::from_utf8(&self.text[start..self.at])
+            .unwrap_or("")
+            .parse::<i64>()
+            .map_err(|_| format!("the integer at byte {start} does not fit in 64 bits"))
     }
 }
+
+/// The whole term, parentheses and sequence chain together, may reach this
+/// deep and no deeper: the traversals of the tree recurse, and a bound here
+/// turns what would abort the process into an error message.
+const MAX_DEPTH: usize = 2000;
 
 fn parse_process(
     sc: &mut Scanner,
     names: &mut Vec<String>,
+    depth: usize,
 ) -> Result<Ast, String> {
-    let mut low = parse_region(sc, names)?;
+    let mut low = parse_region(sc, names, depth)?;
     sc.skip();
     if sc.text.get(sc.at) == Some(&b',') {
-        // a chain of sequences, folded to the left
+        // a chain of sequences, folded to the left; every fold deepens the
+        // left spine of the tree, so the folds count against the depth too
+        let mut folds = 0usize;
         while sc.text.get(sc.at) == Some(&b',') {
             sc.at += 1;
-            let high = parse_region(sc, names)?;
+            folds += 1;
+            if depth + folds > MAX_DEPTH {
+                return Err(format!("the term is deeper than {MAX_DEPTH}, parentheses and sequence folds together"));
+            }
+            let high = parse_region(sc, names, depth + folds)?;
             low = Ast::Op {
                 kind: "sequence",
                 prob: None,
@@ -172,26 +231,30 @@ fn parse_process(
         // parenthesised region may wrap another
         return Ok(low);
     };
-    let high = parse_region(sc, names)?;
+    let high = parse_region(sc, names, depth)?;
     Ok(Ast::Op { kind, prob, low: Box::new(low), high: Box::new(high) })
 }
 
 fn parse_region(
     sc: &mut Scanner,
     names: &mut Vec<String>,
+    depth: usize,
 ) -> Result<Ast, String> {
+    if depth > MAX_DEPTH {
+        return Err(format!("the term is deeper than {MAX_DEPTH}, parentheses and sequence folds together"));
+    }
     sc.eat(b'(')?;
     // a task opens on a name, a wrapped process on another parenthesis
     if sc.peek() == Some(b'(') {
-        let inner = parse_process(sc, names)?;
+        let inner = parse_process(sc, names, depth + 1)?;
         sc.eat(b')')?;
         return Ok(inner);
     }
     // a task: name, duration, and an optional impact map
     let name = sc.name()?;
     sc.eat(b',')?;
-    let d = sc.number()?;
-    if d <= 0.0 || d.fract() != 0.0 {
+    let d = sc.integer()?;
+    if d <= 0 {
         return Err(format!("the task {name} carries the duration {d}, and a duration is a positive integer"));
     }
     let mut impact: Vec<(usize, f64)> = Vec::new();
@@ -230,7 +293,7 @@ fn parse_region(
         sc.eat(b'}')?;
     }
     sc.eat(b')')?;
-    Ok(Ast::Task { name, duration: d as i64, impact })
+    Ok(Ast::Task { name, duration: d, impact })
 }
 
 fn count(ast: &Ast) -> (u32, u32) {
@@ -296,7 +359,7 @@ fn next_id(next: &mut u32) -> u32 {
 pub fn to_yaml(text: &str) -> Result<Parsed, String> {
     let mut sc = Scanner::new(text);
     let mut names: Vec<String> = Vec::new();
-    let ast = parse_process(&mut sc, &mut names)?;
+    let ast = parse_process(&mut sc, &mut names, 0)?;
     sc.skip();
     if sc.at != sc.text.len() {
         return Err(format!("trailing input at byte {}", sc.at));
