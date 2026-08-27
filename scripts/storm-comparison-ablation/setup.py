@@ -66,7 +66,10 @@ def unpack_campaign() -> int:
             out.write(part.read_bytes())
     print(f"unpacking {len(parts)} parts, {whole.stat().st_size // 2**20} MB compressed")
     with tarfile.open(whole, "r:xz") as tar:
-        tar.extractall(HERE)
+        try:
+            tar.extractall(HERE, filter="data")
+        except TypeError:  # the filter argument arrived in Python 3.12
+            tar.extractall(HERE)
     whole.unlink()
     if not DEFAULT.exists():
         print("the archive did not contain default_experiment", file=sys.stderr)
