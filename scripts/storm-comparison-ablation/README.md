@@ -42,7 +42,7 @@ questions of the leader never being touched. A stage pointed at an experiment wr
 
 ## Requirements
 
-- Python 3.10 or later with PyYAML, numpy, plotly and kaleido:
+- Python 3.10 or later with PyYAML, numpy, plotly, kaleido and matplotlib:
   `conda env create -f environment.yml`, or
   `pip install -r requirements.txt`.
 - The library built at the root of the repository: `cargo build --release`.
