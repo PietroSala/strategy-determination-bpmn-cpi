@@ -37,6 +37,7 @@ fn main() {
         "parse" => cmd_parse(&args[1..]),
         "to_prism" => cmd_to_prism(&args[1..]),
         "to_objective" => cmd_to_objective(&args[1..]),
+        "test" => cmd_test(&args[1..]),
         "bound" => cmd_bound(&args[1..]),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
@@ -60,6 +61,12 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
   sdcpi info      <instance>
   sdcpi bound     <instance>
   sdcpi optima    <instance>
+  sdcpi test      [<suite>] [options...]
+
+test runs scripts/<suite>/run.py beside the tree of this executable,
+forwarding the options; without a suite it lists the suites, and the
+options of a suite are its own --help. The library knows the contract
+and nothing of the content.
 
 the grammar of parse, written inline or in the file
   process ::= region (, region)* | region op region      op ::= || | ^ | ^[p]
@@ -454,6 +461,46 @@ fn cmd_to_objective(args: &[String]) -> i32 {
             let _ = std::io::stdout().write_all(prop.as_bytes());
             0
         }
+    }
+}
+
+/// A suite is a folder under scripts/ with a run.py; this dispatcher knows
+/// that contract and nothing of the content, so the library stays free of
+/// what the suites measure.
+fn cmd_test(args: &[String]) -> i32 {
+    let root = std::env::current_exe()
+        .ok()
+        .and_then(|e| e.ancestors().nth(3).map(|p| p.to_path_buf()));
+    let scripts = match root {
+        Some(r) if r.join("scripts").is_dir() => r.join("scripts"),
+        _ => PathBuf::from("scripts"),
+    };
+    let Some((suite, rest)) = args.split_first() else {
+        let mut found = false;
+        if let Ok(entries) = std::fs::read_dir(&scripts) {
+            for e in entries.flatten() {
+                if e.path().join("run.py").exists() {
+                    println!("{}", e.file_name().to_string_lossy());
+                    found = true;
+                }
+            }
+        }
+        if !found {
+            eprintln!("no suite under {}", scripts.display());
+            return 2;
+        }
+        return 0;
+    };
+    if suite.starts_with('-') {
+        return fail("the suite comes first: sdcpi test <suite> [options...]");
+    }
+    let script = scripts.join(suite).join("run.py");
+    if !script.exists() {
+        return fail(&format!("{} does not exist", script.display()));
+    }
+    match std::process::Command::new("python3").arg(&script).args(rest).status() {
+        Ok(s) => s.code().unwrap_or(1),
+        Err(e) => fail(&format!("python3: {e}")),
     }
 }
 

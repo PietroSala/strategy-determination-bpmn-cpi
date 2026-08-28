@@ -170,6 +170,28 @@ is dropped, and a branch whose pessimistic estimate fits is accepted without
 being finished, which is why the returned strategy may leave some situations
 undecided: any decision there fits the budget.
 
+## The test
+
+One command confronts the built binary with the recorded campaign of the
+paper:
+
+```sh
+./target/release/sdcpi test storm-comparison-ablation
+```
+
+The default run takes a few minutes: it unpacks the recorded campaign
+into a fresh scratch folder, keeping the copy beside the scripts
+pristine, and re-asks a small slice of the recorded questions through
+the three ablated configurations of the search, which exercise the
+binary just built, and through Storm, when it is on the PATH, which
+referees the same questions from the outside. Every replayed round is
+compared with the answer the campaign recorded, the exit code is zero
+exactly when every round agrees, and `--full` extends the same
+confrontation to the whole campaign. The suite's own `--help` lists the
+options; `sdcpi test` knows only that a suite is a folder under
+`scripts/` with a `run.py`, so the library stays free of what the
+suites measure.
+
 ## Commands
 
 The core of the tool is `determine`; `info`, `bound` and `optima` are its
@@ -187,6 +209,9 @@ sdcpi parse     (<process> | --file F) [--out F]
 
 sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
 sdcpi to_objective <instance> (--B a,b,... | --B-file F) [--out F]
+sdcpi test      [<suite>] [options...]      run a test suite from scripts/,
+                                            forwarding the options; no suite
+                                            lists the suites
                                              translate the instance into a PRISM
                                              model, on standard output or into
                                              --out; see below for the two

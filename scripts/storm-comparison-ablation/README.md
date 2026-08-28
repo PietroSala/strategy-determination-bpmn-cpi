@@ -52,6 +52,19 @@ questions of the leader never being touched. A stage pointed at an experiment wr
   Storm reads through its `--prism` flag; the PRISM tool itself is never
   invoked.
 
+## The test in one command
+
+`run.py` wraps the confrontation as a test of the built library, and
+`sdcpi test storm-comparison-ablation [options]` runs it from the main
+line. By default it unpacks the recorded campaign into a fresh scratch
+folder, keeping `default_experiment/` pristine, and replays a small
+slice of the recorded questions through the three ablated
+configurations of the search and through Storm; every replayed round is
+compared with the recorded answer, and the exit code is zero exactly
+when all agree. `--full` runs the whole campaign, `--follower` picks
+one confrontation, `--in-place` or `--experiment DIR` run inside an
+existing folder instead, and `--keep` preserves the scratch.
+
 ## The whole flow, from nothing
 
 What follows is everything a new user runs, in order, to have the library
