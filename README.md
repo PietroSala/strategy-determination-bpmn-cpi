@@ -254,3 +254,36 @@ decided situation.
 ## Exit
 
 `0` on an answer either way, nonzero on a malformed instance or arguments.
+
+## References
+
+The problem the tool decides, the synthesis of a strategy whose expected
+impact stays within a budget over processes with choices, probabilities
+and multi-dimensional impacts, was introduced in [1]. The Petri net
+semantics behind the model, and the PACO tool family this library
+belongs to, are presented in [2]; `sdcpi` implements the synthesis on
+the fly, exploring the process without ever building its state space,
+and writes the encodings and the objectives for the Storm model checker
+[3]. The process shapes and the impact modes of the campaign come from
+the benchmark of [4], and the underlying formalism of strategies and
+expected values is that of Markov decision processes [5].
+
+1. E. Chini, P. Sala, A. Simonetti, O. Zare. Reactive synthesis for
+   expected impacts. Electronic Proceedings in Theoretical Computer
+   Science 409, pages 35–52, 2024.
+   [doi:10.4204/EPTCS.409.7](https://doi.org/10.4204/EPTCS.409.7)
+2. E. Chini, D. Amadori, P. Sala, S. N. Rajput, M. Baldi,
+   M. Cappelletti. PACO: a Petri net based tool for designing,
+   simulating, and analyzing multi-objectives stochastic processes.
+   Application and Theory of Petri Nets and Concurrency, Springer, 2026.
+   [doi:10.1007/978-3-032-27879-1_16](https://doi.org/10.1007/978-3-032-27879-1_16)
+3. C. Hensel, S. Junges, J.-P. Katoen, T. Quatmann, M. Volk. The
+   probabilistic model checker Storm. International Journal on Software
+   Tools for Technology Transfer 24(4), pages 589–610, 2022.
+   [doi:10.1007/s10009-021-00633-z](https://doi.org/10.1007/s10009-021-00633-z)
+4. T. C. Workneh, P. Sala, R. Rizzi, M. Cristani. Business process
+   compliance with impact constraints. Information Systems 129, 102505,
+   2025.
+   [doi:10.1016/j.is.2024.102505](https://doi.org/10.1016/j.is.2024.102505)
+5. M. L. Puterman. Markov Decision Processes: Discrete Stochastic
+   Dynamic Programming. Wiley, 2014.
