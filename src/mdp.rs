@@ -1,11 +1,16 @@
 //! The full single-step MDP of an instance: every state the transition
 //! relation reaches from the initial state, and every move as its own
-//! transition, nothing compressed. The search never builds this object,
-//! its macro step jumping from one choice state to the next; this module
-//! exists for inspection, for drawing, and for checking the semantics
-//! against an independent computation, and it is priced accordingly: the
-//! state space is exponential in the instance, so `explore` carries a cap
-//! and stops with an error rather than exhausting memory.
+//! transition, nothing compressed and nothing quotiented. The fast forward
+//! here advances every running node, the internal ones included, exactly as
+//! the semantics writes it; the search quotients that progress away, which
+//! the note at the head of `state.rs` proves sound for every value, but the
+//! object drawn and checked from this module is the unquotiented one. The
+//! search never builds this object, its macro step jumping from one choice
+//! state to the next; this module exists for inspection, for drawing, and
+//! for checking the semantics against an independent computation, and it is
+//! priced accordingly: the state space is exponential in the instance, so
+//! `explore` carries a cap and stops with an error rather than exhausting
+//! memory.
 
 use std::collections::HashMap;
 
@@ -101,7 +106,12 @@ pub fn explore(tree: &Tree, max_states: usize) -> Result<Mdp, String> {
                 edges.push(Edge { from: i, to: j, label: Label::Up { at: v } });
             }
             Some((5, _)) => {
-                // the step, recomputed here for the label alone
+                // the clause as the semantics writes it: the step t is the
+                // least remaining time over the running tasks, the tasks at
+                // that time complete and pay, and EVERY running node
+                // advances by t, the internal ones included; the quotiented
+                // variant of the search lives in state.rs and is not used
+                // here
                 let mut t = i32::MAX;
                 for &u in &tree.tasks {
                     let sv = s[u as usize];
@@ -114,7 +124,24 @@ pub fn explore(tree: &Tree, max_states: usize) -> Result<Mdp, String> {
                 }
                 let mut ns = s.clone();
                 let mut cost = vec![0.0; tree.k];
-                eng.fast_forward(&mut ns, &mut cost);
+                for id in 1..=tree.n_nodes {
+                    let sv = ns[id as usize];
+                    if sv < 0 {
+                        continue;
+                    }
+                    let n = tree.node(id);
+                    if n.kind == crate::tree::Kind::Task
+                        && n.duration as i32 - sv as i32 == t
+                    {
+                        ns[id as usize] = crate::state::DONE;
+                        let imp = tree.impact(id);
+                        for c in 0..tree.k {
+                            cost[c] += imp[c];
+                        }
+                    } else {
+                        ns[id as usize] = (sv as i32 + t) as i8;
+                    }
+                }
                 let j = intern(ns, &mut states)?;
                 edges.push(Edge { from: i, to: j, label: Label::FastForward { t, cost } });
             }
