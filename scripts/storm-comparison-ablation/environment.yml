@@ -5,7 +5,7 @@
 #
 # The model checkers are NOT in here: Storm and PRISM are native tools,
 # installed outside and pinned by version in the README. pip users take
-# requirements.txt instead; the two files name the same four packages.
+# requirements.txt instead; the two files name the same packages.
 name: sdcpi-experiments
 channels:
   - conda-forge
@@ -15,3 +15,4 @@ dependencies:
   - numpy           # the generator, and the impact modes of the benchmark
   - plotly          # the figures
   - python-kaleido  # plotly writes PDF through it
+  - matplotlib      # joined by requirements.txt on 2026-08-28
