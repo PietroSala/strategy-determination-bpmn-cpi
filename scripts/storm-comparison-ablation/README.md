@@ -172,3 +172,9 @@ scripts resolve their own paths, so the working directory does not matter.
    from it into `figures/`. These two are the only scripts a
    reader needs in order to regenerate every number and every figure from
    the recorded rounds, without rerunning anything above them.
+   `python3 scripts/storm-comparison-ablation/export_runs.py` exports the
+   same recorded rounds as one flat table, `runs.csv`, one row per
+   question with the one answer, the seconds of every configuration that
+   played it and the size of the strategies the ablated configurations
+   record, the export failing on any disagreement between the files it
+   merges.
