@@ -231,7 +231,7 @@ pub fn emit(tree: &Tree, stem: &str, file_name: &str, history: bool) -> String {
     w(ws("//   factor widens every range and exhausts CUDD long before the reachable part"));
     w(ws("//   of the model becomes large. At scale 1 every engine builds this model."));
     w(ws("//"));
-    w(ws("// The encoding follows Definitions 8 and 9 of semantics.tex clause by clause."));
+    w(ws("// The encoding follows the single-step semantics clause by clause."));
     w(ws("// Comments below mark the places where it departs from a literal reading."));
     w(ws(""));
     w(ws("mdp"));

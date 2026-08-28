@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Aggregate the refinement games into the numbers the paper reports.
+"""Aggregate the refinement games into the numbers of the record.
 
 One pass over ``benchmarks-refinements`` produces ``results.json``, and
 everything downstream, the figures of the experimental section included, reads
 that file rather than the hundred thousand round records. The experiments are
-still running while the paper is being written, so the pipeline is one command
+still running while the record is being read, so the pipeline is one command
 per update:
 
     python3 make_results.py && python3 make_figures.py
@@ -133,7 +133,7 @@ def main() -> None:
 
     # -- the model checker against the search -----------------------------
     # A diagonal is COMPLETE when the model checker has a record for every
-    # instance of it that the search played. Everything the paper reports of
+    # instance of it that the search played. Everything reported of
     # the comparison is read on the complete diagonals alone: a partial one
     # is a biased sample of its cell, and its total seconds would be compared
     # against the full total of the diagonal below it. The flag is computed

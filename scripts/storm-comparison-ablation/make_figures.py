@@ -2,9 +2,9 @@
 """The figures of the experimental section, from ``results.json``.
 
 Reads the aggregates ``make_results.py`` writes and renders the figures of
-Section 7 as PDF, at the text width of the paper, 390 pt, so that they are
+PDF, at a text width of 390 pt, so that they are
 included at natural size and their type prints at the size it was set. The
-experiments are still running while the paper is written; the update is
+experiments are still running while the figures are read; the update is
 
     python3 make_results.py && python3 make_figures.py
 
@@ -69,7 +69,7 @@ def save(fig, name):
     out = FIGS / name
     # kaleido reads the layout in CSS pixels at 96 to the inch and writes the
     # page in points at 72, so a figure laid out at 390 must be exported at four
-    # thirds for the page to come out at 390 pt, the text width of the paper,
+    # thirds for the page to come out at 390 pt, the target text width,
     # with its 9 pt type printing at 9 pt
     fig.write_image(str(out), format="pdf", scale=4 / 3)
     print(out.name)
@@ -241,7 +241,7 @@ def fig_medians():
 # (d) the share of questions on which it is strictly smaller with the
 # accepting test. One palette carries the four panels: color follows the
 # configuration, and the legend names each by the test it keeps, shortened
-# to the symbol, the caption of the paper spelling the signatures out.
+# to the symbol, the caption beneath the figure spelling the signatures out.
 def fig_bounds():
     series = [("both", "\U0001d53c\u0302 and \U0001d543\u0302", BOTH, "solid"),
               ("lower", "\U0001d543\u0302 alone", LOWER, "dash"),

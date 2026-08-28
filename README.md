@@ -2,17 +2,16 @@
 
 **Pietro Sala** — Version 0.2
 
-Material and code for the paper *On-the-Fly Strategy Synthesis for Expected
-Impacts* (Chini, Amadori, Sala). The command-line tool `sdcpi`, Strategy
-Determination for BPMN+CPI, lives at the root of this repository and is
-documented below on its own terms; `examples/` holds two instances to
-explore it with. `scripts/storm-comparison-ablation/`
-holds the pipeline that redoes the experiments of the paper, the
-comparison with Storm and the ablation, from nothing, its own `README.md`
-walking the stages; the library asks nothing of the scripts, and the
-scripts ask only the built library. The campaign of the paper as it was
-recorded ships as a split archive that `setup.py` unpacks; the repository
-is private until the paper is submitted.
+The command-line tool `sdcpi`, Strategy Determination for BPMN+CPI,
+lives at the root of this repository and is documented below on its own
+terms; `examples/` holds two instances to explore it with.
+`scripts/storm-comparison-ablation/` holds its test suite: a large
+differential campaign that confronts the tool with the Storm model
+checker and with three ablated configurations of its own search,
+rebuildable from nothing, its own `README.md` walking the stages; the
+library asks nothing of the scripts, and the scripts ask only the built
+library. The recorded reference campaign ships as a split archive that
+`setup.py` unpacks; the repository is private for now.
 
 **Strategy Determination for BPMN+CPI**, a command-line tool. Given a business
 process with decisions, chance and multi-dimensional costs, it answers one
@@ -172,8 +171,8 @@ undecided: any decision there fits the budget.
 
 ## The test
 
-One command confronts the built binary with the recorded campaign of the
-paper:
+One command confronts the built binary with the recorded reference
+campaign:
 
 ```sh
 ./target/release/sdcpi test storm-comparison-ablation

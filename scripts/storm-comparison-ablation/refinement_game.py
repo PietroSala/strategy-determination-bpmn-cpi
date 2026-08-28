@@ -181,7 +181,7 @@ def storm_check(model: Path, root: int, bound: list[Fraction],
     the round records. That is deliberate and it is the whole point of the
     comparison: our search never builds the process, it explores it on the fly,
     so a competitor that built it once and answered ten questions against the
-    result would be spared exactly the cost the paper is about. Each round is a
+    result would be spared exactly the cost this comparison is about. Each round is a
     separate question put to a tool that starts from the model file, which is
     also how anyone would use it.
 

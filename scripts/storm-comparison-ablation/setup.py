@@ -6,8 +6,8 @@ touches nothing. First, the thousand process shapes and the generator of
 the impact vectors come from process-impact-benchmarks (Workneh, Sala,
 Rizzi, Cristani, Information Systems 2025): this script clones that
 repository into this directory and checks out the recorded commit, so the
-shapes underneath every stage are the shapes of the paper and cannot
-drift. Second, the campaign of the paper as it was recorded, instances,
+shapes underneath every stage are the recorded shapes and cannot
+drift. Second, the reference campaign as it was recorded, instances,
 optima, bounds, refinement rounds and results, ships with this repository
 as a split compressed archive: this script reassembles it and unpacks it
 into `default_experiment/`, the folder the stages read when they are run
@@ -42,11 +42,11 @@ def fetch_benchmark() -> int:
     head = subprocess.run(["git", "-C", str(BENCH), "rev-parse", "HEAD"],
                           capture_output=True, text=True, check=True).stdout.strip()
     if head != COMMIT:
-        print(f"{BENCH} sits at {head[:12]} and the paper used {COMMIT[:12]};\n"
+        print(f"{BENCH} sits at {head[:12]} and the record pins {COMMIT[:12]};\n"
               f"move it aside and run this script again, or check out the pin:\n"
               f"    git -C {BENCH} checkout --detach {COMMIT}", file=sys.stderr)
         return 1
-    print(f"process-impact-benchmarks at {COMMIT[:12]}, as the paper used it")
+    print(f"process-impact-benchmarks at {COMMIT[:12]}, as the record pins it")
     return 0
 
 

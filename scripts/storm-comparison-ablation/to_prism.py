@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Translate one BPMN+CPI instance (YAML) into a PRISM model file.
 
-The encoding follows Definitions 8 and 9 of ``algorithm-paper/semantics.tex``
+The encoding follows the single-step semantics of the tool
 clause by clause, from the non saturated semantics, so that every clause of the
 transition relation becomes one guarded command of the model and no cascade of
 moves is ever collapsed.
@@ -319,7 +319,7 @@ def emit(data: dict, root: Node, source: Path, scale: float,
     w("//   factor widens every range and exhausts CUDD long before the reachable part")
     w("//   of the model becomes large. At scale 1 every engine builds this model.")
     w("//")
-    w("// The encoding follows Definitions 8 and 9 of semantics.tex clause by clause.")
+    w("// The encoding follows the single-step semantics clause by clause.")
     w("// Comments below mark the places where it departs from a literal reading.")
     w("")
     w("mdp")

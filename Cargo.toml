@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.80"
 description = "On-the-fly strategy synthesis for BPMN+CPI processes"
 
-# No dependencies on purpose. The timings of this binary go into a paper, and a
+# No dependencies on purpose. The timings of this binary are recorded, and a
 # build that resolves nothing from the network is a build a reader can repeat
 # years from now. Everything the search needs, the YAML reader of the fixed
 # instance format, the seeded generator, the concurrent tables and the worker

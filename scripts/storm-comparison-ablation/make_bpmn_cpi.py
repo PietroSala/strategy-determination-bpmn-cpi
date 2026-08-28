@@ -310,7 +310,7 @@ def build(nested: int, independent: int, process_number: int, dimensions: int,
     # one seed per instance, derived from the run seed and the key through a
     # stable digest, so that a single file can be rebuilt without rebuilding
     # the grid and two runs of the same command write the same bytes on any
-    # machine. The campaign the paper reports predates this derivation, its
+    # machine. The recorded campaign predates this derivation, its
     # generator having leaned on the hash of the interpreter run that made
     # it, so the grid this stage writes is drawn the same way and is not
     # that grid; the grid of the paper ships in default_experiment.

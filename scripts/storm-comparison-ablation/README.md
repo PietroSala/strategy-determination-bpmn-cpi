@@ -1,8 +1,8 @@
 # storm-comparison-ablation
 
-The pipeline that produced the experimental section of the paper, the
-comparison with Storm and the ablation of the search, stage by stage and
-from scratch. The library at the root of the repository stands on its own
+The test suite of the library: a differential campaign that confronts
+the search with the Storm model checker and with three ablated
+configurations of itself, stage by stage and from scratch. The library at the root of the repository stands on its own
 and knows nothing of what happens here; these scripts ask only the built
 library, and everything they fetch or produce lands in this directory,
 beside the scripts themselves.
@@ -11,9 +11,9 @@ Every stage is resumable: each one skips the work whose output already
 sits on disk, so a stage that was interrupted is simply run again and
 continues where it stopped. Every stage is deterministic under the seeds
 it carries, so what one machine produces, another reproduces. One caveat
-belongs to history: the grid the campaign of the paper was drawn from
+belongs to history: the grid the recorded campaign was drawn from
 predates the stable seed derivation of stage 1, so stage 1 rewrites a
-grid drawn the same way, not that grid; the grid of the paper ships in
+grid drawn the same way, not that grid; the recorded grid ships in
 `default_experiment/`.
 
 ## Replaying the recorded campaign
@@ -31,7 +31,7 @@ python3 scripts/storm-comparison-ablation/make_results.py --replay-experiment
 python3 scripts/storm-comparison-ablation/make_figures.py --replay-experiment
 ```
 
-regenerates every number and every figure of the paper from the recorded
+regenerates every recorded number and figure from the recorded
 rounds, and `replay.py --replay-experiment` re-asks the recorded questions
 themselves, continuing from wherever the record stands; with
 `--from-scratch` it first forgets every answer the follower has recorded,
@@ -46,8 +46,8 @@ questions of the leader never being touched. A stage pointed at an experiment wr
   `pip install -r requirements.txt`.
 - The library built at the root of the repository: `cargo build --release`.
 - For the comparison stages only: Storm 1.13.0, the one external tool the
-  pipeline runs. The exact build, source and checksum used by the paper are
-  recorded in the header comments of `compute_bounds.py` and
+  pipeline runs. The exact build, source and checksum of the recorded
+  campaign are in the header comments of `compute_bounds.py` and
   `refinement_game.py`. The models are written in the PRISM language, which
   Storm reads through its `--prism` flag; the PRISM tool itself is never
   invoked.
@@ -67,7 +67,8 @@ existing folder instead, and `--keep` preserves the scratch. With
 `--rebuild` the same command relaunches the pipeline from nothing
 instead, stage 1 to stage 5 in order into `rebuilt_experiment/` or the
 `--experiment` folder, resumable throughout, scoped by `--max-diagonal`
-and `--dimensions`; without them the rebuild is the scale of the paper.
+and `--dimensions`; without them the rebuild is the full scale of the
+recorded campaign.
 
 ## The whole flow, from nothing
 
@@ -116,8 +117,8 @@ scale: the search stages take hours over the full grid, and the Storm
 pass takes days, which is why every stage resumes when interrupted, and
 why `--max-diagonal` and `--limit` exist for a first taste. And one
 reminder from the stable seed: a grid rebuilt from scratch is drawn the
-same way as the grid of the paper without being that grid, so numbers
-compared against the paper come from the recorded campaign,
+same way as the recorded grid without being that grid, so numbers
+compared against the record come from the recorded campaign,
 
 ```sh
 python3 scripts/storm-comparison-ablation/make_results.py --replay-experiment
@@ -136,7 +137,7 @@ scripts resolve their own paths, so the working directory does not matter.
    clones process-impact-benchmarks (Workneh, Sala, Rizzi, Cristani,
    Information Systems 2025), the one thousand process shapes and the
    generator of the impact vectors, called and not reimplemented, and pins
-   it to the commit the paper used.
+   it to the recorded commit.
 1. **The instances.** `python3 scripts/storm-comparison-ablation/make_bpmn_cpi.py
    --all --dimensions 2 3 4 5 6 7 8 9 10 --mode all --seed 20260815` writes
    the grid, `bpmn-cpi-benchmarks/`, 54 000 instances: the thousand
@@ -164,6 +165,6 @@ scripts resolve their own paths, so the working directory does not matter.
    scripts/storm-comparison-ablation/make_results.py` aggregates every
    recorded round into `results.json`, and `python3
    scripts/storm-comparison-ablation/make_figures.py` renders the figures
-   of the paper from it into `figures/`. These two are the only scripts a
+   from it into `figures/`. These two are the only scripts a
    reader needs in order to regenerate every number and every figure from
    the recorded rounds, without rerunning anything above them.

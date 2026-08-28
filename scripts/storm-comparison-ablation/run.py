@@ -27,11 +27,11 @@ with every follower, and aggregates the numbers and the figures. The
 target folder is `rebuilt_experiment/` beside the scripts, or
 `--experiment DIR`; every stage resumes, so an interrupted rebuild is
 run again and continues. `--max-diagonal` and `--dimensions` scope the
-grid, and the full grid without them is the scale of the paper, days
-included.
+grid, and the full grid without them is the full scale of the recorded
+campaign, days included.
 
     run.py --rebuild --max-diagonal 3 --dimensions 2 3     a taste
-    run.py --rebuild                                       the paper scale
+    run.py --rebuild                                       the full scale
 
 The exit code is 0 when every replayed round agrees, 1 on any
 disagreement, 2 when the run cannot start.

@@ -1,6 +1,6 @@
 //! The tree of a BPMN+CPI process, and the reader of the instance files.
 //!
-//! Definition 3 of the paper gives the tree as
+//! The model gives the tree as
 //! `T = (V, E_low u E_high, L, P, D, I)`. It is held here in one arena indexed
 //! by the identifier of the node, which the instance files carry and which is
 //! the in-order numbering of Definition 5: every node of the low subtree has a
@@ -496,7 +496,7 @@ impl<'a> Parser<'a> {
 
     /// The invariants the instance files carry, checked rather than assumed: a
     /// reader that trusts them silently turns a malformed file into a wrong
-    /// answer, and the numbers of this binary go into a paper.
+    /// answer, and the numbers of this binary are recorded and compared.
     fn check(&self, tree: &Tree) -> Result<(), ParseError> {
         if tree.tasks.len() as u32 != tree.n_tasks {
             return Err(ParseError::new(
