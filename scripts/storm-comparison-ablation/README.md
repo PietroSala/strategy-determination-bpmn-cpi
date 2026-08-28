@@ -1,6 +1,7 @@
 # storm-comparison-ablation
 
-The test suite of the library: a differential campaign that confronts
+A test suite of the library, the first of the family `sdcpi test`
+runs: a differential campaign that confronts
 the search with the Storm model checker and with three ablated
 configurations of itself, stage by stage and from scratch. The library at the root of the repository stands on its own
 and knows nothing of what happens here; these scripts ask only the built

@@ -169,10 +169,16 @@ is dropped, and a branch whose pessimistic estimate fits is accepted without
 being finished, which is why the returned strategy may leave some situations
 undecided: any decision there fits the budget.
 
-## The test
+## Testing
 
-One command confronts the built binary with the recorded reference
-campaign:
+Test suites live under `scripts/`, one folder with a `run.py` each:
+`sdcpi test` lists them, `sdcpi test <suite> [options]` runs one, and
+more suites will arrive as the library evolves. The dispatcher knows
+only that contract, so the library stays free of what the suites
+measure, and the options of a suite are listed by its own `--help`.
+
+The suite included today confronts the built binary with the recorded
+reference campaign:
 
 ```sh
 ./target/release/sdcpi test storm-comparison-ablation
@@ -186,10 +192,7 @@ binary just built, and through Storm, when it is on the PATH, which
 referees the same questions from the outside. Every replayed round is
 compared with the answer the campaign recorded, the exit code is zero
 exactly when every round agrees, and `--full` extends the same
-confrontation to the whole campaign. The suite's own `--help` lists the
-options; `sdcpi test` knows only that a suite is a folder under
-`scripts/` with a `run.py`, so the library stays free of what the
-suites measure.
+confrontation to the whole campaign.
 
 ## Commands
 
