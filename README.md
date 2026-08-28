@@ -211,6 +211,11 @@ sdcpi parse     (<process> | --file F) [--out F]
 
 sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
 sdcpi to_objective <instance> (--B a,b,... | --B-file F) [--out F]
+sdcpi mdp       <instance> [--max-states N] [--out F]
+                                             dump the full single-step MDP of
+                                             the instance, every state and
+                                             every move, for inspection and
+                                             for drawing
 sdcpi test      [<suite>] [options...]      run a test suite from scripts/,
                                             forwarding the options; no suite
                                             lists the suites
