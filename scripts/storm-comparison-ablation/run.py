@@ -18,6 +18,7 @@ run.
     run.py --in-place             run inside default_experiment, mutating it
     run.py --experiment DIR       run inside DIR, mutating it
     run.py --keep                 keep the scratch folder and print its path
+    run.py --numbers              regenerate the recorded numbers and figures
 
 With `--rebuild` the same command relaunches the pipeline from nothing
 instead: it fetches the pinned benchmark, generates a fresh grid with the
@@ -173,6 +174,10 @@ def main() -> int:
                    help="run inside default_experiment, mutating it")
     p.add_argument("--keep", action="store_true",
                    help="keep the scratch folder and print its path")
+    p.add_argument("--numbers", action="store_true",
+                   help="regenerate results.json and the figures from the "
+                        "recorded rounds of default_experiment, unpacking it "
+                        "first when it is absent, and do nothing else")
     p.add_argument("--rebuild", action="store_true",
                    help="relaunch the pipeline from nothing into the target "
                         "folder instead of replaying the recorded campaign")
@@ -188,6 +193,18 @@ def main() -> int:
         print(f"{BINARY} does not exist; build it first:\n    cargo build --release",
               file=sys.stderr)
         return 2
+    if a.numbers:
+        import setup as setup_stage
+        if not (HERE / "default_experiment").exists():
+            if setup_stage.unpack_campaign():
+                return 2
+        for script in ("make_results.py", "make_figures.py"):
+            subprocess.run([sys.executable, str(HERE / script),
+                            "--replay-experiment"], check=True)
+        print(f"numbers in {HERE / 'default_experiment' / 'results.json'}, "
+              f"figures in {HERE / 'default_experiment' / 'figures'}")
+        return 0
+
     if a.rebuild:
         return rebuild(a)
 

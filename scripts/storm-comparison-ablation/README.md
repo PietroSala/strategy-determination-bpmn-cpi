@@ -63,7 +63,10 @@ configurations of the search and through Storm; every replayed round is
 compared with the recorded answer, and the exit code is zero exactly
 when all agree. `--full` runs the whole campaign, `--follower` picks
 one confrontation, `--in-place` or `--experiment DIR` run inside an
-existing folder instead, and `--keep` preserves the scratch. With
+existing folder instead, and `--keep` preserves the scratch. `--numbers` alone
+regenerates `results.json` and the figures from the recorded rounds of
+`default_experiment/`, unpacking it first when it is absent, which is
+the one command of the reproducibility statement. With
 `--rebuild` the same command relaunches the pipeline from nothing
 instead, stage 1 to stage 5 in order into `rebuilt_experiment/` or the
 `--experiment` folder, resumable throughout, scoped by `--max-diagonal`
