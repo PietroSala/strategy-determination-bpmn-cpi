@@ -8,7 +8,6 @@
 //! An instance is a path to a YAML file.
 
 mod arena;
-mod mdp;
 mod parse;
 mod bound;
 mod exact;
@@ -38,7 +37,6 @@ fn main() {
         "parse" => cmd_parse(&args[1..]),
         "to_prism" => cmd_to_prism(&args[1..]),
         "to_objective" => cmd_to_objective(&args[1..]),
-        "mdp" => cmd_mdp(&args[1..]),
         "test" => cmd_test(&args[1..]),
         "bound" => cmd_bound(&args[1..]),
         "-h" | "--help" | "help" => {
@@ -60,7 +58,6 @@ sdcpi  on-the-fly strategy synthesis for BPMN+CPI processes
   sdcpi parse     (<process> | --file F) [--out F]
   sdcpi to_prism  <instance> [--encode-history true|false] [--out F]
   sdcpi to_objective <instance> (--B a,b,... | --B-file F) [--out F]
-  sdcpi mdp       <instance> [--max-states N] [--out F]
   sdcpi info      <instance>
   sdcpi bound     <instance>
   sdcpi optima    <instance>
@@ -431,40 +428,6 @@ fn cmd_optima(args: &[String]) -> i32 {
         Err(e) => fail(&format!("{e:?}")),
     }
 }
-/// The full single-step MDP of the instance, every state and every move,
-/// as a plain text dump for inspection and for drawing.
-fn cmd_mdp(args: &[String]) -> i32 {
-    let args = match parse_args(args) {
-        Ok(a) => a,
-        Err(e) => return fail(&e),
-    };
-    let (_path, tree) = match load(&args) {
-        Ok(v) => v,
-        Err(e) => return fail(&e),
-    };
-    let max_states = match args.flag("max-states").map(|v| v.parse::<usize>()) {
-        None => 1_000_000,
-        Some(Ok(n)) => n,
-        Some(Err(_)) => return fail("--max-states wants a number"),
-    };
-    let graph = match mdp::explore(&tree, max_states) {
-        Ok(g) => g,
-        Err(e) => return fail(&e),
-    };
-    let text = mdp::dump(&tree, &graph);
-    match args.flag("out") {
-        Some(p) => match std::fs::write(p, &text) {
-            Ok(()) => 0,
-            Err(e) => fail(&format!("{p}: {e}")),
-        },
-        None => {
-            use std::io::Write;
-            let _ = std::io::stdout().write_all(text.as_bytes());
-            0
-        }
-    }
-}
-
 fn cmd_to_objective(args: &[String]) -> i32 {
     let args = match parse_args(args) {
         Ok(a) => a,
