@@ -63,7 +63,11 @@ configurations of the search and through Storm; every replayed round is
 compared with the recorded answer, and the exit code is zero exactly
 when all agree. `--full` runs the whole campaign, `--follower` picks
 one confrontation, `--in-place` or `--experiment DIR` run inside an
-existing folder instead, and `--keep` preserves the scratch.
+existing folder instead, and `--keep` preserves the scratch. With
+`--rebuild` the same command relaunches the pipeline from nothing
+instead, stage 1 to stage 5 in order into `rebuilt_experiment/` or the
+`--experiment` folder, resumable throughout, scoped by `--max-diagonal`
+and `--dimensions`; without them the rebuild is the scale of the paper.
 
 ## The whole flow, from nothing
 
@@ -150,7 +154,7 @@ scripts resolve their own paths, so the working directory does not matter.
    for the per-component bounds, the independent reference the optima are
    verified against.
 4. **The games.** `python3 scripts/storm-comparison-ablation/refinement_game.py
-   --all --rounds 10` plays the ten threshold questions of every instance
+   --all --checker paco --rounds 10` plays the ten threshold questions of every instance
    with the search and records every round under `benchmarks-refinements/`;
    `python3 scripts/storm-comparison-ablation/replay.py --leader paco
    --follower storm --timeout 120` replays the same questions with Storm,

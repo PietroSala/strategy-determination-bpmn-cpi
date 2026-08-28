@@ -13,3 +13,4 @@ scripts/storm-comparison-ablation/figures/
 scripts/storm-comparison-ablation/default_experiment/
 scripts/storm-comparison-ablation/default_experiment.tar.xz
 __pycache__/
+scripts/storm-comparison-ablation/rebuilt_experiment/

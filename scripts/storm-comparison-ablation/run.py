@@ -19,6 +19,20 @@ run.
     run.py --experiment DIR       run inside DIR, mutating it
     run.py --keep                 keep the scratch folder and print its path
 
+With `--rebuild` the same command relaunches the pipeline from nothing
+instead: it fetches the pinned benchmark, generates a fresh grid with the
+stable seed, computes the optima, asks Storm for the reference bounds
+when it is on the PATH, plays the games with the search, replays them
+with every follower, and aggregates the numbers and the figures. The
+target folder is `rebuilt_experiment/` beside the scripts, or
+`--experiment DIR`; every stage resumes, so an interrupted rebuild is
+run again and continues. `--max-diagonal` and `--dimensions` scope the
+grid, and the full grid without them is the scale of the paper, days
+included.
+
+    run.py --rebuild --max-diagonal 3 --dimensions 2 3     a taste
+    run.py --rebuild                                       the paper scale
+
 The exit code is 0 when every replayed round agrees, 1 on any
 disagreement, 2 when the run cannot start.
 """
@@ -84,6 +98,61 @@ def replay(ws: Path, follower: str, a) -> tuple[int, int, int]:
     return int(last.group(1)), int(last.group(2)), int(last.group(3))
 
 
+def rebuild(a) -> int:
+    import setup as setup_stage
+    if setup_stage.fetch_benchmark():
+        return 2
+    ws = Path(a.experiment).resolve() if a.experiment else HERE / "rebuilt_experiment"
+    ws.mkdir(parents=True, exist_ok=True)
+    dims = [str(d) for d in (a.dimensions or range(2, 11))]
+
+    def stage(script, *args):
+        cmd = [sys.executable, str(HERE / script), "--replay-experiment", str(ws)]
+        cmd += [str(x) for x in args]
+        subprocess.run(cmd, check=True)
+
+    try:
+        if a.full or not a.max_diagonal:
+            stage("make_bpmn_cpi.py", "--all", "--dimensions", *dims,
+                  "--mode", "all", "--seed", a.seed)
+        else:
+            files = sorted((HERE / "process-impact-benchmarks"
+                            / "generated_processes").glob(
+                                "generated_processes_full_*_*.txt"))
+            for f in files:
+                n, i = map(int, f.stem.split("_")[-2:])
+                if n + i > a.max_diagonal:
+                    continue
+                shapes = len([l for l in f.read_text().splitlines() if l.strip()])
+                stage("make_bpmn_cpi.py", "--nested", n, "--independent", i,
+                      "--process-number", *range(1, shapes + 1),
+                      "--dimensions", *dims, "--mode", "all", "--seed", a.seed)
+        stage("exact_optima.py", "--all")
+        have_storm = shutil.which("storm") is not None
+        if have_storm and not a.skip_bounds:
+            stage("compute_bounds.py", "--all", "--timeout", a.timeout)
+        elif not have_storm:
+            print("storm is not on the PATH: the reference bounds and the "
+                  "storm replay are skipped", flush=True)
+        stage("refinement_game.py", "--all", "--checker", "paco",
+              "--rounds", a.rounds, "--timeout", a.timeout)
+        for follower in (FOLLOWERS if have_storm else FOLLOWERS[:-1]):
+            stage("replay.py", "--follower", follower,
+                  "--rounds", a.rounds, "--timeout", a.timeout)
+        stage("make_results.py")
+        try:
+            stage("make_figures.py")
+        except subprocess.CalledProcessError:
+            print("figures skipped; plotly and kaleido are needed for them",
+                  flush=True)
+    except subprocess.CalledProcessError as e:
+        print(f"a stage failed and the rebuild stops there; running the same "
+              f"command again resumes: {e}", file=sys.stderr)
+        return 1
+    print(f"\nrebuilt experiment at {ws}")
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--follower", default="all",
@@ -104,12 +173,24 @@ def main() -> int:
                    help="run inside default_experiment, mutating it")
     p.add_argument("--keep", action="store_true",
                    help="keep the scratch folder and print its path")
+    p.add_argument("--rebuild", action="store_true",
+                   help="relaunch the pipeline from nothing into the target "
+                        "folder instead of replaying the recorded campaign")
+    p.add_argument("--dimensions", type=int, nargs="+", default=None,
+                   help="rebuild only: the impact dimensions of the grid "
+                        "(default 2 through 10)")
+    p.add_argument("--seed", type=int, default=20260815)
+    p.add_argument("--skip-bounds", action="store_true",
+                   help="rebuild only: leave the Storm reference bounds out")
     a = p.parse_args()
 
     if not BINARY.exists():
         print(f"{BINARY} does not exist; build it first:\n    cargo build --release",
               file=sys.stderr)
         return 2
+    if a.rebuild:
+        return rebuild(a)
+
     followers = FOLLOWERS if a.follower == "all" else [a.follower]
     if "storm" in followers and shutil.which("storm") is None:
         if a.follower == "all":
