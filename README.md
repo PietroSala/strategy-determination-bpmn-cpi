@@ -290,3 +290,7 @@ expected values is that of Markov decision processes [5].
    [doi:10.1016/j.is.2024.102505](https://doi.org/10.1016/j.is.2024.102505)
 5. M. L. Puterman. Markov Decision Processes: Discrete Stochastic
    Dynamic Programming. Wiley, 2014.
+
+## License
+
+MIT; see [LICENSE](LICENSE).
